@@ -1,0 +1,4 @@
+bin/
+build/
+disasm/
+make.bat

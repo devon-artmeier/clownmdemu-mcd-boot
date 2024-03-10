@@ -1,0 +1,115 @@
+; ----------------------------------------------------------------------
+; Mega CD minimal boot ROM for clownmdemu
+; ----------------------------------------------------------------------
+; Main CPU main program
+; ----------------------------------------------------------------------
+; Copyright (c) 2024 Devon Artmeier
+;
+; Permission to use, copy, modify, and/or distribute this software
+; for any purpose with or without fee is hereby granted.
+;
+; THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
+; WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIE
+; WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
+; AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
+; DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
+; PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER 
+; TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+; PERFORMANCE OF THIS SOFTWARE.
+; ----------------------------------------------------------------------
+
+; ----------------------------------------------------------------------
+; Hard reset
+; ----------------------------------------------------------------------
+
+HardReset:
+	move.w	#$2700,sr				; Disable interrupts
+	lea	stackBase,sp				; Reset stack pointer
+	
+	tst.l	IO_CTRL_1-1				; Has there been a soft reset?
+	bne.s	SoftReset				; If so, branch
+	tst.w	IO_CTRL_3-1
+	bne.s	SoftReset				; If so, branch
+	
+	moveq	#$F,d0					; Does this console have TMSS?
+	and.b	VERSION,d0
+	beq.s	.NoTMSS					; If not, branch
+	move.l	BOOT_ROM+$100,TMSS_SEGA			; If so, satisfy TMSS
+
+.NoTMSS:
+	moveq	#0,d0					; Set d0 to 0
+	movea.w	d0,a0					; End of Work RAM
+	move.l	a0,usp					; Clear user stack pointer
+	
+	move.w	#$8000/16-1,d1				; Clear Work RAM up to the initial program
+
+.ClearWorkRAM:
+	move.l	d0,-(a0)
+	move.l	d0,-(a0)
+	move.l	d0,-(a0)
+	move.l	d0,-(a0)
+	dbf	d1,.ClearWorkRAM
+	
+; ----------------------------------------------------------------------
+; Soft reset
+; ----------------------------------------------------------------------
+
+SoftReset:
+	move.w	#$2700,sr				; Disable interrupts
+	clr.l	vblankFlags				; Clear V-BLANK handler flags
+
+.WaitDMA:
+	move	VDP_CTRL,ccr				; Wait for any remaining DMA to finish
+	bvs.s	.WaitDMA				; (Also clears write pending flag)
+
+	moveq	#0,d0					; Clear communication registers
+	move.b	d0,GA_MAIN_FLAG
+	move.l	d0,GA_COMM_CMD_0
+	move.l	d0,GA_COMM_CMD_2
+	move.l	d0,GA_COMM_CMD_4
+	move.l	d0,GA_COMM_CMD_6
+
+	bsr.w	SetupCallTable				; Set up call table in RAM
+	bsr.w	SetDefaultVDPRegs			; Set the default VDP register values
+	bsr.w	ClearVDPMemory				; Clear VDP memory
+	bsr.w	ClearPalette				; Clear palette
+	bsr.w	ClearSprites				; Clear sprites
+	
+	moveq	#$FFFFFF9F,d0				; PSG1 silence value
+	moveq	#4-1,d1					; 4 PSG channels
+	
+.SilencePSG:
+	move.b	d0,PSG_CTRL				; Silence channel
+	addi.b	#$20,d0					; Next channel
+	dbf	d1,.SilencePSG				; Loop until finished
+	
+	bsr.w	InitZ80					; Initalize the Z80
+	bsr.w	InitControllers				; Initialize the controllers
+
+.ResetSubCPU:
+	bclr	#0,GA_RESET				; Set the Sub CPU to reset
+	bne.s	.ResetSubCPU
+
+.ReqSubCPUBus:
+	bset	#1,GA_RESET				; Request the Sub CPU's bus
+	beq.s	.ReqSubCPUBus
+
+	move.b	#0,GA_PROTECT				; Disable write protection
+
+	lea	SubCPUBIOS,a0				; Decompress Sub CPU BIOS
+	lea	PRG_RAM,a1
+	bsr.w	KosDec
+
+	move.b	#$2A,GA_PROTECT				; Enable write protection
+
+.RunSubCPU:
+	bset	#0,GA_RESET				; Set the Sub CPU to run
+	beq.s	.RunSubCPU
+
+.GiveSubCPUBus:
+	bclr	#1,GA_RESET				; Give back the Sub CPU's bus
+	bne.s	.GiveSubCPUBus
+
+	jmp	WORK_RAM				; Go to the initial program
+
+; ----------------------------------------------------------------------
