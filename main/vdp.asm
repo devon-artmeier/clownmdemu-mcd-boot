@@ -35,21 +35,22 @@ SetDefaultVDPRegs:
 
 SetVDPRegisters:
 	lea	vdpReg00,a2				; VDP register cache
-	moveq	#0,d0					; Clear d0
 
 .SetupRegs:
-	move.b	(a1),d0					; Get register ID
+	move.w	(a1)+,d0				; Get register ID and value
 	bpl.s	.End					; If we are at the end of the list, branch
-
-	move.w	(a1)+,d1				; Get register ID and value
-	cmpi.b	#$92,d0					; Should it be stored in the cache?
+	
+	cmpi.w	#$9200,d0				; Should it be stored in the cache?
 	bhi.s	.SetRegister				; If not, branch
 	
-	add.b	d0,d0					; Set in cache
-	move.w	d1,(a2,d0.w)
+	move.w	d0,-(sp)				; Set in cache
+	move.b	(sp)+,d1
+	andi.w	#$7F,d1
+	add.w	d1,d1
+	move.w	d0,(a2,d1.w)
 
 .SetRegister:
-	move.w	d1,VDP_CTRL				; Set register
+	move.w	d0,VDP_CTRL				; Set register
 	bra.s	.SetupRegs				; Loop
 
 .End:
@@ -76,15 +77,30 @@ DefaultVDPRegs:
 	dc.w	0
 
 ; ----------------------------------------------------------------------
+; Wait for a DMA to finish
+; ----------------------------------------------------------------------
+
+WaitDMA:
+	move	VDP_CTRL,ccr				; Has the operation finished?
+	bvs.s	WaitDMA					; If not, wait
+	rts
+
+; ----------------------------------------------------------------------
+; Set background color to black
+; ----------------------------------------------------------------------
+
+SetBlackBackground:
+	move.l	#$C0000000,VDP_CTRL			; Set first color to black
+	move.w	#0,VDP_DATA
+	rts
+
+; ----------------------------------------------------------------------
 ; Clear VDP memory
 ; ----------------------------------------------------------------------
 
 ClearVDPMemory:
-	move.l	#$C0000000,VDP_CTRL			; Set first color to black
-	move.w	#0,VDP_DATA
-
+	bsr.s	SetBlackBackground			; Set background to black
 	bsr.w	ClearVSRAM				; Clear VSRAM
-
 	move.l	#$40000000,d0				; Clear VRAM
 	move.w	#$10000-1,d1
 	bra.s	ClearVRAMRegion
@@ -116,9 +132,10 @@ ClearSprites:
 ClearPalette:
 	lea	palette,a0				; Clear palette buffer
 	moveq	#$80/4-1,d0
+	moveq	#0,d1
 	
 .ClearPalette:
-	clr.l	(a0)+
+	move.l	d1,(a0)+
 	dbf	d0,.ClearPalette
 	
 	move.l	#$C0000000,d0				; CRAM WRITE $0000
@@ -176,7 +193,8 @@ ClearVDPWindow:
 
 ClearVDPPlaneA:
 	move.l	#$40000003,d0				; Clear plane A
-	bra.s	ClearVDPPlane
+	move.w	#$2000-1,d1
+	bra.s	ClearVRAMRegion
 
 ; ----------------------------------------------------------------------
 ; Clear plane B
@@ -184,12 +202,10 @@ ClearVDPPlaneA:
 
 ClearVDPPlaneB:
 	move.l	#$60000003,d0				; Clear plane B
-
-ClearVDPPlane:
-	move.w	#$2000-1,d1				; Size of plane in bytes
+	move.w	#$2000-1,d1
 
 ; ----------------------------------------------------------------------
-; Clear region of VRAM with VRAM fill
+; Clear a region of VRAM
 ; ----------------------------------------------------------------------
 ; PARAMETERS
 ;	d0.l - VDP command
@@ -200,7 +216,7 @@ ClearVRAMRegion:
 	moveq	#0,d2					; Fill with 0
 
 ; ----------------------------------------------------------------------
-; Fill region of VRAM with VRAM fill
+; Fill a region of VRAM
 ; ----------------------------------------------------------------------
 ; PARAMETERS
 ;	d0.l - VDP command
@@ -213,7 +229,7 @@ FillVRAMRegion:
 
 	move.w	#$8F01,(a6)				; Set auto-increment to 1
 	move.w	vdpReg01,d3				; Enable DMA
-	bset	#4,d3
+	ori.b	#1<<4,d3
 	move.w	d3,(a6)
 	
 	move.l	#$94009300,-(sp)			; Start operation
@@ -224,9 +240,41 @@ FillVRAMRegion:
 	move.l	d0,(a6)
 	move.w	d2,-4(a6)
 
-.Wait:
-	move	(a6),ccr				; Has the operation finished?
-	bvs.s	.Wait					; If not, wait
+	bsr.w	WaitDMA					; Wait for the operation to finish
+
+	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
+	move.w	#$8F02,(a6)				; Set auto-increment to 2
+	rts
+
+; ----------------------------------------------------------------------
+; Copy a region of VRAM to another place in VRAM
+; ----------------------------------------------------------------------
+; PARAMETERS:
+;	d0.l - VDP command for destination VRAM address
+;	d1.w - Source VRAM address
+;	d2.w - Number of bytes to copy (minus 1)
+; ----------------------------------------------------------------------
+
+CopyVRAMRegion:
+	lea	VDP_CTRL,a6				; VDP control port
+
+	move.w	#$8F01,(a6)				; Set auto-increment to 1
+	move.w	vdpReg01,d3				; Enable DMA
+	ori.b	#1<<4,d3
+	move.w	d3,(a6)
+	
+	move.l	#$94009300,-(sp)			; Prepare parameters
+	move.l	#$96009500,-(sp)
+	movep.w	d1,1(sp)
+	movep.w	d2,5(sp)
+
+	move.l	(sp)+,(a6)				; Start operation
+	move.l	(sp)+,(a6)
+	move.w	#$97C0,(a6)
+	ori.w	#$C0,d0
+	move.l	d0,(a6)
+
+	bsr.w	WaitDMA					; Wait for the operation to finish
 
 	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
 	move.w	#$8F02,(a6)				; Set auto-increment to 2
@@ -242,14 +290,28 @@ FillVRAMRegion:
 ; ----------------------------------------------------------------------
 
 DMA68kMemToVRAM:
+	ori.l	#$40000080,d0				; VRAM DMA
+
+; ----------------------------------------------------------------------
+; DMA transfer from 68000 memory to VDP memory
+; ----------------------------------------------------------------------
+; PARAMETERS:
+;	d0.l - VDP DMA command
+;	d1.l - Source address
+;	d2.w - Number of words to copy
+; ----------------------------------------------------------------------
+
+DMA68kMemToVDP:
 	lea	VDP_CTRL,a6				; VDP control port
 
 	move.w	vdpReg01,d3				; Enable DMA
-	bset	#4,d3
+	ori.b	#1<<4,d3
 	move.w	d3,(a6)
 
-	ori.l	#$40000080,d0				; Prepare parameters
-	move.l	d0,-(sp)
+	move	sr,-(sp)				; Disable interrupts
+	move	#$2700,sr
+	
+	move.l	d0,-(sp)				; Prepare parameters
 	move.l	#$96009500,-(sp)
 	move.l	#$93009700,-(sp)
 	move.w	#$9400,-(sp)
@@ -260,9 +322,45 @@ DMA68kMemToVRAM:
 	move.l	(sp)+,(a6)				; Start operation
 	move.l	(sp)+,(a6)
 	move.l	(sp)+,(a6)
+	
+	bsr.w	StopZ80
 	move.w	(sp)+,(a6)
+	bsr.w	StartZ80
 
 	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
+	move	(sp)+,sr				; Restore interrupt settings
+	rts
+	
+; ----------------------------------------------------------------------
+; Update CRAM
+; ----------------------------------------------------------------------
+
+UpdateCRAM:
+	bclr	#0,cramUpdate				; Should we update CRAM?
+	beq.s	.End					; If not, branch
+	
+	move.l	#$C0000080,d0				; Copy palette to CRAM
+	move.l	#palette&$FFFFFF,d1
+	moveq	#$80/2,d2
+	bra.w	DMA68kMemToVDP
+	
+.End:
+	rts
+	
+; ----------------------------------------------------------------------
+; Update sprite data in VRAM
+; ----------------------------------------------------------------------
+
+UpdateSpriteVRAM:
+	btst	#0,vblankFlags				; Should we update sprite data?
+	beq.s	.End					; If not, branch
+	
+	move.l	#$78000082,d0				; Copy sprite data to VRAM
+	move.l	#sprites&$FFFFFF,d1
+	move.w	#$280/2,d2
+	bra.w	DMA68kMemToVDP
+	
+.End:
 	rts
 
 ; ----------------------------------------------------------------------
@@ -278,29 +376,10 @@ DMAWordRAMToVRAM:
 	move.l	a0,-(sp)				; Save a0
 	movea.l	d1,a0					; Save source address for later
 	
-	lea	VDP_CTRL,a6				; VDP control port
-
-	move.w	#$8F02,(a6)				; Set auto-increment to 2
-	move.w	vdpReg01,d3				; Enable DMA
-	bset	#4,d3
-	move.w	d3,(a6)
+	move.w	#$8F02,VDP_CTRL				; Set auto-increment to 2
 	
-	ori.l	#$40000080,d0				; Prepare parameters
-	move.l	d0,-(sp)
-	move.l	#$96009500,-(sp)
-	move.l	#$93009700,-(sp)
-	move.w	#$9400,-(sp)
-	addq.l	#2,d1
-	asr.l	#1,d1
-	movep.l	d1,3(sp)
-	movep.w	d2,1(sp)
-	
-	move.l	(sp)+,(a6)				; Start operation
-	move.l	(sp)+,(a6)
-	move.l	(sp)+,(a6)
-	move.w	(sp)+,(a6)
-
-	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
+	addq.l	#2,d1					; Perform DMA operation
+	bsr.w	DMA68kMemToVRAM
 	
 	andi.w	#~$80,d0				; Manually copy first longword to VRAM
 	move.l	d0,(a6)
@@ -308,42 +387,6 @@ DMAWordRAMToVRAM:
 
 	move.w	vdpReg0F,(a6)				; Restore previous auto-increment setting
 	movea.l	(sp)+,a0				; Restore a0
-	rts
-
-; ----------------------------------------------------------------------
-; Perform VRAM copy
-; ----------------------------------------------------------------------
-; PARAMETERS:
-;	d0.l - VDP command for destination VRAM address
-;	d1.w - Source VRAM address
-;	d2.w - Number of bytes to copy (minus 1)
-; ----------------------------------------------------------------------
-
-VRAMCopy:
-	lea	VDP_CTRL,a6				; VDP control port
-
-	move.w	#$8F01,(a6)				; Set auto-increment to 1
-	move.w	vdpReg01,d3				; Enable DMA
-	bset	#4,d3
-	move.w	d3,(a6)
-	
-	move.l	#$94009300,-(sp)			; Prepare parameters
-	move.l	#$96009500,-(sp)
-	movep.w	d1,1(sp)
-	movep.w	d2,5(sp)
-
-	move.l	(sp)+,(a6)				; Start operation
-	move.l	(sp)+,(a6)
-	move.w	#$97C0,(a6)
-	ori.w	#$C0,d0
-	move.l	d0,(a6)
-
-.Wait:
-	move	(a6),ccr				; Has the operation finished?
-	bvs.s	.Wait					; If not, wait
-
-	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
-	move.w	#$8F02,(a6)				; Set auto-increment to 2
 	rts
 
 ; ----------------------------------------------------------------------
@@ -526,8 +569,7 @@ EnableDisplay:
 ; ----------------------------------------------------------------------
 
 BlackOutDisplay:
-	move.l	#$C0000000,VDP_CTRL			; Set first color to black
-	move.w	#0,VDP_DATA
+	bsr.w	SetBlackBackground			; Set background to black
 	
 ; ----------------------------------------------------------------------
 ; Disable display
@@ -556,53 +598,20 @@ LoadPalette:
 ; ----------------------------------------------------------------------
 
 LoadPaletteNoUpdate:
-	move.l	a3,-(sp)				; Save a3
+	move.l	a2,-(sp)				; Save a2
 	
-	moveq	#0,d0					; Get palette buffer offset
+	lea	palette,a2				; Get palette buffer offset
+	moveq	#0,d0
 	move.b	(a1)+,d0
-	lea	palette,a3
-	adda.w	d0,a3
+	adda.w	d0,a2
 	
 	move.b	(a1)+,d0				; Get palette length
 	
 .Load:
-	move.w	(a1)+,(a3)+				; Copy palette data
+	move.w	(a1)+,(a2)+				; Copy palette data
 	dbf	d0,.Load				; Loop until finished
 	
-	movea.l	(sp)+,a3				; Restore a3
-	rts
-	
-; ----------------------------------------------------------------------
-; Update CRAM
-; ----------------------------------------------------------------------
-
-UpdateCRAM:
-	bclr	#0,cramUpdate				; Should we update CRAM?
-	beq.s	.End					; If not, branch
-	
-	lea	VDP_CTRL,a4				; VDP control port
-	
-	move.w	vdpReg01,d4				; Enable DMA
-	bset	#4,d4
-	move.w	d4,(a4)
-	
-	move.w	sr,-(sp)				; Disable interrupts
-	move	#$2700,sr
-	
-	move.l	#$94009340,(a4)				; Prepare DMA
-	move.l	#$96009500|((palette>>1)&$FF)|((palette<<7)&$FF0000),(a4)
-	move.w	#$9700|((palette>>17)&$7F),(a4)
-	move.w	#$C000,(a4)
-	move.w	#$80,-(sp)
-	
-	bsr.w	StopZ80					; Perform DMA
-	move.w	(sp)+,(a4)
-	bsr.w	StartZ80
-	
-	move.w	vdpReg01,(a4)				; Restore previous DMA enable setting
-	move	(sp)+,sr				; Restore interrupt settings
-	
-.End:
+	movea.l	(sp)+,a2				; Restore a2
 	rts
 
 ; ----------------------------------------------------------------------
@@ -616,7 +625,7 @@ UpdateCRAM:
 ; ----------------------------------------------------------------------
 
 FadeOutPalette:
-	movem.l	d0-d3/a0,-(sp)				; Save registers
+	movem.l	d0-d6/a0,-(sp)				; Save registers
 	
 	lea	palette,a0				; Get palette buffer offset
 	adda.w	d0,a0
@@ -624,34 +633,30 @@ FadeOutPalette:
 	moveq	#0,d0					; Clear faded flag
 	
 .FadeColors:
-	move.w	(a0),d2					; Get color value
+	moveq	#$E,d2					; Mask value
+	moveq	#2,d3					; Decrement value
+	moveq	#3-1,d4					; Number of channels
+	move.w	(a0),d5					; Get color
 	
-	move.w	d2,d3					; Get red value
-	andi.w	#$E,d3					; Is it 0?
-	beq.s	.FadeGreen				; If so, branch
-	subq.w	#2,d2					; Fade red value
+.FadeChannels:
+	move.w	d5,d6					; Mask channel value
+	and.w	d2,d6
+	beq.s	.NextChannel				; If it's already 0, branch
+	sub.w	d3,d5					; Decrement channel value
 	
-.FadeGreen:
-	move.w	d2,d3					; Get green value
-	andi.w	#$E0,d3					; Is it 0?
-	beq.s	.FadeBlue				; If so, branch
-	subi.w	#$20,d2					; Fade green value
-
-.FadeBlue:
-	move.w	d2,d3					; Get blue value
-	andi.w	#$E00,d3				; Is it 0?
-	beq.s	.StoreColor				; If so, branch
-	subi.w	#$200,d2				; Fade blue value
-
-.StoreColor:
-	move.w	d2,(a0)+				; Store color value
-	or.w	d2,d0					; Combine with faded flag
+.NextChannel:
+	lsl.w	#4,d2					; Next channel
+	lsl.w	#4,d3
+	dbf	d4,.FadeChannels			; Loop until finished
+	
+	move.w	d5,(a0)+				; Store color value
+	or.w	d5,d0					; Combine with faded flag
 	dbf	d1,.FadeColors				; Loop until palette region is faded
 	
 	bset	#0,cramUpdate				; Update CRAM
 	tst.w	d0					; Set zero flag to faded flag
 
-	movem.l	(sp)+,d0-d3/a0				; Restore registers
+	movem.l	(sp)+,d0-d6/a0				; Restore registers
 	rts
 
 ; ----------------------------------------------------------------------
@@ -673,88 +678,47 @@ SetupPaletteFadeIn:
 ; ----------------------------------------------------------------------
 
 FadeInPalette:
-	movem.l	d0-d4/a0-a1,-(sp)			; Save registers
+	movem.l	d0-d6/a0-a1,-(sp)			; Save registers
 	
-	moveq	#0,d0					; Get palette buffer offset
+	lea	palette,a0				; Get palette buffer offset
+	moveq	#0,d0
 	move.b	palFadeInOffset,d0
-	lea	palette,a1
-	adda.w	d0,a1
+	adda.w	d0,a0
 	
+	movea.l	palFadeInData,a1			; Get palette fade data
 	move.b	palFadeInLength,d0			; Get palette fade length
-	movea.l	palFadeInData,a0			; Get palette fade data
 	
 .FadeColors:
-	move.w	palFadeInIntensity,d1			; Get fade intensity
-	move.w	(a0)+,d2				; Get color
+	moveq	#0,d1					; Color buffer
+	move.w	palFadeInIntensity,d2			; Fade intensity
+	moveq	#$E,d3					; Mask value
+	moveq	#3-1,d4					; Number of channels
+	move.w	(a1)+,d5				; Get color
+
+.FadeChannels:
+	move.w	d5,d6					; Mask channel value
+	and.w	d3,d6
+	sub.w	d2,d6					; Apply fade intensity
+	bpl.s	.NextChannel				; If it's not 0, branch
+	moveq	#0,d6					; Cap it at 0
 	
-	move.w	d2,d3					; Get red value
-	andi.w	#$E,d3
-	sub.w	d1,d3
-	bpl.s	.GetGreen
-	moveq	#0,d3
+.NextChannel:
+	or.w	d6,d1					; Set channel value
+	lsl.w	#4,d2					; Next channel
+	lsl.w	#4,d3
+	dbf	d4,.FadeChannels			; Loop until finished
 	
-.GetGreen:
-	lsl.w	#4,d1					; Get green value
-	move.w	d2,d4
-	andi.w	#$E0,d4
-	sub.w	d1,d4
-	bpl.s	.GetBlue
-	moveq	#0,d4
-	
-.GetBlue:
-	lsl.w	#4,d1					; Get blue value
-	andi.w	#$E00,d2
-	sub.w	d1,d2
-	bpl.s	.StoreColor
-	moveq	#0,d2
-	
-.StoreColor:
-	or.w	d4,d2					; Store color
-	or.w	d3,d2
-	move.w	d2,(a1)+
+	move.w	d1,(a0)+				; Store color
 	dbf	d0,.FadeColors				; Loop until palette region is faded
 	
-	tst.w	palFadeInIntensity			; Has the palette faded in all the way?
-	beq.s	.End					; If so, branch
-	subq.w	#2,palFadeInIntensity			; If not, decrease the intensity
+	subq.w	#2,palFadeInIntensity			; Decrease the intensity
+	bpl.s	.End					; If it hasn't underflown, branch
+	clr.w	palFadeInIntensity			; Cap it at 0
 	
 .End:
 	bset	#0,cramUpdate				; Update CRAM
 	
-	movem.l	(sp)+,d0-d4/a0-a1			; Restore registers
-	rts
-	
-; ----------------------------------------------------------------------
-; Update sprite data in VRAM
-; ----------------------------------------------------------------------
-
-UpdateSpriteVRAM:
-	btst	#0,vblankFlags				; Should we update sprite data?
-	beq.s	.End					; If not, branch
-	
-	lea	VDP_CTRL,a4				; VDP control port
-	
-	move.w	vdpReg01,d4				; Enable DMA
-	bset	#4,d4
-	move.w	d4,(a4)
-	
-	move.w	sr,-(sp)				; Disable interrupts
-	move	#$2700,sr
-	
-	move.l	#$94019340,(a4)				; Prepare DMA
-	move.l	#$96009500|((sprites>>1)&$FF)|((sprites<<7)&$FF0000),(a4)
-	move.w	#$9700|((sprites>>17)&$7F),(a4)
-	move.w	#$7800,(a4)
-	move.w	#$82,-(sp)
-	
-	bsr.w	StopZ80					; Perform DMA
-	move.w	(sp)+,(a4)
-	bsr.w	StartZ80
-	
-	move.w	vdpReg01,(a4)				; Restore previous DMA enable setting
-	move	(sp)+,sr				; Restore interrupt settings
-	
-.End:
+	movem.l	(sp)+,d0-d6/a0-a1			; Restore registers
 	rts
 
 ; ----------------------------------------------------------------------
@@ -797,7 +761,7 @@ DrawText:
 
 LoadFontDefault:
 	move.l	#$44000000,d0				; Load into start of VRAM
-	clr.w	fontTile
+	move.w	d0,fontTile
 	move.l	#$00011011,d1				; Set up decode table to use colors 0 and 1
 
 ; ----------------------------------------------------------------------
@@ -823,7 +787,8 @@ FlushDMAQueue:
 	move.w	(a1)+,d2				; Get DMA length
 	beq.s	.End					; If we are at the end, branch
 	
-	movem.l	(a1)+,d0-d1				; Do DMA operation
+	move.l	(a1)+,d0				; Do DMA operation
+	move.l	(a1)+,d1
 	bsr.w	DMAWordRAMToVRAM
 	
 	bra.s	FlushDMAQueue				; Process next entry

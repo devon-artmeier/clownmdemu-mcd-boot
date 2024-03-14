@@ -37,6 +37,7 @@
 	include	"main/vdp.asm"
 	include	"main/controller.asm"
 	include	"main/z80.asm"
+	include	"main/communication.asm"
 	include	"main/memory.asm"
 	include	"main/decompress.asm"
 	include	"main/math.asm"

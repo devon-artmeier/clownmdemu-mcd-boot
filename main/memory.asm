@@ -29,7 +29,7 @@
 ; ----------------------------------------------------------------------
 
 ClearMemoryRegion:
-	movea.w	a0,a6					; Get start of memory region
+	movea.l	a0,a6					; Get start of memory region
 	moveq	#0,d6					; Fill with 0
 
 .Clear:
@@ -51,7 +51,7 @@ ClearLargeMemoryRegion:
 
 .Clear:
 	bsr.s	ClearMemoryRegion			; Clear memory region block
-	movea.w	a6,a0					; Go to next block
+	movea.l	a6,a0					; Go to next block
 	dbf	d5,.Clear				; Loop until finished
 
 	movem.l	(sp)+,d5/a0				; Restore registers

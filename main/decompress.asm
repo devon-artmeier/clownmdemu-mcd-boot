@@ -702,7 +702,7 @@ KosDec_Code01:
 ; ----------------------------------------------------------------------
 
 Decode1BPPGraphics:
-	add.w	d2,d2					; Get number of 2-line groups
+	add.w	d2,d2					; Get number of pixel row groups
 	add.w	d2,d2
 	subq.w	#1,d2					; Decrement for DBF
 	
@@ -711,35 +711,62 @@ Decode1BPPGraphics:
 	move.l	d1,-(sp)				; Save decode table onto the stack
 	
 .Decode:
-	move.w	(a1)+,d1				; Decode row 1
-	bsr.s	.Decode2Pixels
-	bsr.s	.DecodeNext2Pixels
-	bsr.s	.DecodeNext2Pixels
-	bsr.s	.DecodeNext2Pixels
-	move.l	d3,(a5)
+	move.w	(a1)+,d1				; Get 2 pixel rows (16 pixels)
 	
-	bsr.s	.Decode2Pixels				; Decode row 2
-	bsr.s	.DecodeNext2Pixels
-	bsr.s	.DecodeNext2Pixels
-	bsr.s	.DecodeNext2Pixels
-	move.l	d3,(a5)
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),-(sp)
+	move.w	(sp)+,d3
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),d3
+	
+	move.w	d3,(a5)					; Write decoded pixels
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),-(sp)
+	move.w	(sp)+,d3
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),d3
+	
+	move.w	d3,(a5)					; Write decoded pixels
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),-(sp)
+	move.w	(sp)+,d3
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),d3
+	
+	move.w	d3,(a5)					; Write decoded pixels
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),-(sp)
+	move.w	(sp)+,d3
+	
+	rol.w	#2,d1					; Decode 2 pixels
+	move.w	d1,d4
+	andi.w	#3,d4
+	move.b	(sp,d4.w),d3
+	
+	move.w	d3,(a5)					; Write decoded pixels
 	
 	dbf	d2,.Decode				; Loop until finished
 	move.l	(sp)+,d1				; Deallocate the decode table
-	rts
-
-; ----------------------------------------------------------------------
-
-.DecodeNext2Pixels:
-	rol.l	#8,d3					; Make room for next 2 pixels
-
-; ----------------------------------------------------------------------
-
-.Decode2Pixels:
-	rol.w	#2,d1					; Get next 2 pixels
-	move.w	d1,d4
-	andi.w	#3,d4
-	move.b	4(sp,d4.w),d3				; Decode into 4BPP pixels
 	rts
 
 ; ----------------------------------------------------------------------

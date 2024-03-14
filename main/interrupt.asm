@@ -19,11 +19,29 @@
 ; ----------------------------------------------------------------------
 
 ; ----------------------------------------------------------------------
-; V-BLANK interrupt
+; Default V-BLANK interrupt
 ; ----------------------------------------------------------------------
 
 VBlankInt:
+	movem.l	d0-a6,-(sp)				; Save registers
 	bsr.w	TriggerSubIRQ2				; Trigger Sub CPU IRQ2
+	
+	tst.b	vblankUpdatesOff			; Are updates disabled?
+	bne.s	.NoUpdates
+	
+	bsr.w	UpdateCRAM				; Update CRAM
+	
+	btst	#1,vblankFlags				; Is the user handler enabled?
+	beq.s	.NoUpdates				; If not, branch
+	jsr	VBLANK_USER				; Run user handler
+	
+	addq.b	#1,vblankUserCounter			; Increment counter
+	
+.NoUpdates:
+	bsr.w	ReadControllers				; Read controllers
+	
+	clr.b	vblankFlags				; Clear V-BLANK handler flags
+	movem.l	(sp)+,d0-a6				; Restore registers
 	rte
 
 ; ----------------------------------------------------------------------
@@ -52,6 +70,18 @@ VSync:
 	bra.w	UpdateRandomSeed			; Update RNG seed
 
 ; ----------------------------------------------------------------------
+; Delay for a number of frames
+; ----------------------------------------------------------------------
+; PARAMETERS:
+;	d1.w - Number of frames to delay (minus 1)
+; ----------------------------------------------------------------------
+
+Delay:
+	bsr.s	DefaultVSync				; VSync
+	dbf	d1,Delay				; Loop until finished
+	rts
+
+; ----------------------------------------------------------------------
 ; Set V-BLANK interrupt handler
 ; ----------------------------------------------------------------------
 ; PARAMETERS
@@ -59,7 +89,7 @@ VSync:
 ; ----------------------------------------------------------------------
 
 SetVBlankHandler:
-	move.l	a1,VBLANK_INT+2
+	move.l	a1,VBLANK_INT+2				; Set handler
 	rts
 	
 ; ----------------------------------------------------------------------

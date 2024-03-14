@@ -23,40 +23,38 @@
 ; ----------------------------------------------------------------------
 
 SecurityAnimation:
-	lea	WORK_RAM,a0				; Get security block type
-	bsr.w	CheckSecurityBlock
-	move.w	d0,-(sp)
-	bmi.s	.End					; If it's invalid, just exit out
+	move.l	a1,-(sp)				; Save a1
+	bsr.w	SetDefaultVDPRegs			; Set VDP registers
+	bsr.w	ClearVDPMemory				; Clear VDP memory
+	bsr.w	ClearSprites				; Clear sprites
+	bsr.w	LoadFontDefault				; Load font
+	move.l	(sp)+,a1				; Restore a1
 	
 	move.l	VBLANK_INT+2,-(sp)			; Save V-BLANK handler
 	move.w	VBLANK_INT,-(sp)
+	
+	lea	WORK_RAM,a0				; Get security block type
+	bsr.w	CheckSecurityBlock
+	move.w	d0,-(sp)
+	bmi.s	SecurityInvalidDisc			; If it's invalid, branch
 	
 	move	#$2700,sr				; Set V-BLANK handler
 	move.w	#$4EF9,VBLANK_INT
 	move.l	#VBlank_Security,VBLANK_INT+2
 	
-	move.l	a1,-(sp)				; Save a1
-	
-	bsr.w	SetDefaultVDPRegs			; Set VDP registers
-	bsr.w	ClearVDPMemory				; Clear VDP memory
-	bsr.w	ClearSprites				; Clear sprites
-	bsr.w	LoadFontDefault				; Load font
-	
-	move.w	6+4(sp),d1				; Check region
-	bsr.s	SecurityCheckRegion
-	
-	move.l	(sp)+,a1				; Restore a1
+	move.w	(sp),d1					; Check region
+	move.l	a1,-(sp)
+	bsr.w	SecurityCheckRegion
+	move.l	(sp)+,a1
 
-	move.w	6(sp),d0				; Run animation based on type
+	move.w	(sp),d0					; Run animation based on type
 	add.w	d0,d0
 	add.w	d0,d0
 	jsr	.Animations(pc,d0.w)
 	
+	addq.w	#2,sp					; Deallocate security block type
 	move.w	(sp)+,VBLANK_INT			; Restore V-BLANK handler
 	move.l	(sp)+,VBLANK_INT+2
-	
-.End:
-	addq.w	#2,sp					; Deallocate security block type
 	rts
 	
 ; ----------------------------------------------------------------------
@@ -65,6 +63,32 @@ SecurityAnimation:
 	bra.w	SecurityAnimJapan
 	bra.w	SecurityAnimUSAEurope
 	bra.w	SecurityAnimUSAEurope
+	
+; ----------------------------------------------------------------------
+; Invalid disc error message
+; ----------------------------------------------------------------------
+
+SecurityInvalidDisc:
+	lea	.ErrorString(pc),a1			; Draw error string
+	move.l	#$458E0003,d0
+	bsr.w	DrawText
+
+	move.l	#$EE00000,palette			; Set palette
+	bset	#0,cramUpdate
+	
+	bsr.w	EnableDisplay				; Enable display
+
+.Hang:
+	bsr.w	DefaultVSync				; VSync
+	bra.s	.Hang					; Loop indefinitely
+
+; ----------------------------------------------------------------------
+
+.ErrorString:
+	dc.b	"          ERROR", 0, 0
+	dc.b	"THE INSERTED DISC IS NOT A", 0
+	dc.b	"   VALID MEGA CD DISC.", -1
+	even
 	
 ; ----------------------------------------------------------------------
 ; Check the region before displaying the animation
@@ -166,52 +190,44 @@ SecurityAnimJapan:
 
 	bsr.w	EnableDisplay				; Enable display
 	
-	moveq	#60-1,d1				; 60 frames
-
-.DelayStart:
-	bsr.w	DefaultVSync				; VSync
-	dbf	d1,.DelayStart				; Wait until the end
+	moveq	#60-1,d1				; Hold for a second
+	bsr.w	Delay
 	
 	bsr.w	PlaySecurityJingle			; Play the jingle
 
 	moveq	#0,d2					; Reset frame counter
 	lea	.PalCycleTimes(pc),a0			; Palette cycle times
 	lea	.PalCycleData(pc),a1			; Palette cycle data
-	moveq	#0,d1					; Reset next palette cycle frame 
+	moveq	#0,d3					; Reset next palette cycle frame 
 
 .PalCycle:
-	cmp.w	d1,d2					; Is it time to do another palette cycle?
-	bcs.s	.IncFrame				; If not, branch
-
-	moveq	#0,d0					; Set next palette cycle frame
-	move.b	(a0)+,d0
-	add.w	d0,d1
-
 	lea	palette,a2				; Update palette
 	move.l	(a1)+,(a2)+
 	move.w	(a1)+,(a2)+
 	bset	#0,cramUpdate
+	
+	move.w	(a0)+,d1				; Get number of frames to delay
+	bmi.s	.End					; If we are at the end, branch
+	bsr.w	Delay					; Delay for a number of frames
+	bra.s	.PalCycle				; Loop
 
-.IncFrame:
-	bsr.w	DefaultVSync				; VSync
-	addq.w	#1,d2					; Increment frame count
-	cmpi.w	#180,d2					; Are we done?
-	bcs.s	.PalCycle				; If not, loop
-
+.End:
 	rts
 	
 ; ----------------------------------------------------------------------
 
 .PalCycleTimes:
-	dc.b	2, 2, 2, 2
-	dc.b	2, 2, 2, 2
-	dc.b	5, 3, 3, 4
-	dc.b	4, 4, 2, 2
-	dc.b	2, 2, 2, 2
-	dc.b	2, 2, 2, 2
-	dc.b	35, 181
+	dc.w	2-1, 2-1, 2-1, 2-1
+	dc.w	2-1, 2-1, 2-1, 2-1
+	dc.w	2-1, 5-1, 3-1, 3-1
+	dc.w	4-1, 4-1, 4-1, 2-1
+	dc.w	2-1, 2-1, 2-1, 2-1
+	dc.w	2-1, 2-1, 2-1, 2-1
+	dc.w	2-1, 35-1, 84-1
+	dc.w	-1
 
 .PalCycleData:
+	dc.w	$EEE, $000, $E00
 	dc.w	$CCC, $000, $E00
 	dc.w	$AAA, $000, $E00
 	dc.w	$888, $000, $E00
@@ -244,15 +260,12 @@ SecurityAnimJapan:
 ; ----------------------------------------------------------------------
 
 SecurityAnimUSAEurope:
-	move.l	a1,-(sp)				; Save a1
-	
-	lea	.SparkleData(pc),a1			; Load sparkle palette
-	bsr.w	LoadPaletteNoUpdate
-	
-	move.l	#$40200000,VDP_CTRL			; Load sparkle graphics
+	move.l	a1,-(sp)				; Load sparkle graphics data
+	lea	SecuritySparkleData(pc),a1
+	bsr.w	LoadPalette
+	move.l	#$40200000,VDP_CTRL
 	bsr.w	NemDec
-	
-	movea.l	(sp)+,a1				; Restore a1
+	movea.l	(sp)+,a1
 	
 	bsr.w	LoadPalette				; Load palette from security block
 
@@ -284,81 +297,45 @@ SecurityAnimUSAEurope:
 	bsr.w	DrawSonicFrame1				; Draw Sonic
 	bsr.w	EnableDisplay				; Enable display
 	
-	move.l	#SecurityObjIndex-4,objIndexTable	; Set object index table
 	lea	objects,a0				; Clear object slots
-	move.w	#(objLength*OBJECT_SLOTS)/4-1,d7
-	bsr.w	ClearMemoryRegion
+	move.w	#(objLength*OBJECT_SLOTS)/4-1,d0
+	moveq	#0,d1
+	
+.ClearObjects:
+	move.l	d1,(a0)+
+	dbf	d0,.ClearObjects
+	
+	move.l	#SecurityObjIndex-4,objIndexTable	; Set object index table
 	bsr.w	SpawnSecuritySparkles			; Spawn objects
-
-	moveq	#60-1,d1				; 60 frames
-
-.DelayStart:
-	bsr.w	DefaultVSync				; VSync
-	dbf	d1,.DelayStart				; Wait until the end
+	
+	moveq	#60-1,d1				; Hold for a second
+	bsr.w	Delay
 	
 	moveq	#57-1,d4				; Run for 57 frames
-	moveq	#0,d5					; Animation counter
+	moveq	#0,d5					; Reset animation counter
 	
 .AnimateSonic:
 	bsr.w	DefaultVSync				; VSync
-	addi.b	#$1A,d6					; Increment animation counter
-	bpl.s	.SonicFrame2				; If we should draw frame 2, branch
-	bsr.w	DrawSonicFrame1				; Draw frame 1
-	bra.s	.AnimSonicLoop
+	lea	DrawSonicFrame1(pc),a0			; Animate and draw Sonic
+	addi.b	#$1A,d5
+	bmi.s	.DrawSonic
+	lea	DrawSonicFrame2(pc),a0
 	
-.SonicFrame2:
-	bsr.w	DrawSonicFrame2				; Draw frame 2
-
-.AnimSonicLoop:
+.DrawSonic:
+	jsr	(a0)
 	dbf	d4,.AnimateSonic			; Loop until animation is finished
 
 	bsr.w	PlaySecurityJingle			; Play jingle
 	
-	moveq	#4-1,d5					; Run for 4 frames
-	
-.UpdateSparkles1:
-	bsr.w	DefaultVSync				; VSync
-	
-	lea	objects+((OBJECT_SLOTS-16)*objLength),a0; Update sparkles that go offscreen
-	lea	sprites,a1
+	lea	objects+(objLength*64),a0		; Update sparkles that go offscreen
 	moveq	#16-1,d0
-	moveq	#objLength,d1
-	bsr.w	UpdateObjects
+	moveq	#4-1,d5
+	bsr.w	SecurityUpdateObjects
 	
-	dbf	d5,.UpdateSparkles1			; Loop until finished
-	
-	move.w	#240-1,d5				; Run for 241 frames
-	
-.UpdateSparkles2:
-	bsr.w	DefaultVSync				; VSync
-	
-	lea	objects,a0				; Update sparkles
-	lea	sprites,a1
+	lea	objects,a0				; Update all sparkles
 	moveq	#OBJECT_SLOTS-1,d0
-	moveq	#objLength,d1
-	bsr.w	UpdateObjects
-	
-	dbf	d5,.UpdateSparkles2			; Loop until finished
-	rts
-
-; ----------------------------------------------------------------------
-
-.SparkleData:
-	; Palette
-	dc.b	0, (.PaletteEnd-.Palette)/2-1
-.Palette:
-	dc.w	$000, $EE8, $000, $EE4, $EE0, $EC0, $000, $000
-	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
-	dc.w	$000, $EC0, $000, $EE0, $EC0, $EA0, $000, $000
-	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
-	dc.w	$000, $E80, $000, $EC0, $EA0, $E80, $000, $000
-	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
-.PaletteEnd:
-
-	; Graphics
-	dc.b	$00, $04, $80, $54, $0E, $71, $00, $83, $02, $02, $84, $03
-	dc.b	$06, $FF, $1F, $A0, $FC, $08, $1D, $BF, $01, $BA, $ED, $F8
-	dc.b	$0C, $0F, $F0, $5D, $6B, $A0, $3F, $81, $F8, $50, $FE, $00
+	move.w	#245-1,d5
+	bra.w	SecurityUpdateObjects
 
 ; ----------------------------------------------------------------------
 ; Check if a valid security block is present
@@ -506,20 +483,44 @@ PlaySecurityJingle:
 
 DrawSonicFrame1:
 	lea	decompBuffer+$D8,a1			; Draw frame 1
-	bra.s	DrawSonicFrame
+	move.l	#$45900003,d0
+	moveq	#3-1,d1
+	moveq	#5-1,d2
+	bra.w	DrawTilemap
 
 ; ----------------------------------------------------------------------
 
 DrawSonicFrame2:
 	lea	decompBuffer+$F6,a1			; Draw frame 2
-
-; ----------------------------------------------------------------------
-
-DrawSonicFrame:
-	move.l	#$45900003,d0				; Draw frame
+	move.l	#$45900003,d0
 	moveq	#3-1,d1
 	moveq	#5-1,d2
 	bra.w	DrawTilemap
+
+; ----------------------------------------------------------------------
+; Update objects
+; ----------------------------------------------------------------------
+; PARAMETERS:
+;	d5.w - Number of frames to run (minus 1)
+;	a0.l - Pointer to object slots
+;	d0.w - Number of object slots
+; ----------------------------------------------------------------------
+
+SecurityUpdateObjects:
+	movem.l	d0/a0,-(sp)				; Save registers
+	
+.UpdateObjects:
+	bsr.w	DefaultVSync				; VSync
+	
+	move.l	(sp),d0					; Update objects
+	movea.l	4(sp),a0
+	lea	sprites,a1
+	moveq	#objLength,d1
+	bsr.w	UpdateObjects
+	
+	dbf	d5,.UpdateObjects			; Loop until finished
+	movem.l	(sp)+,d0/a0				; Restore registers
+	rts
 
 ; ----------------------------------------------------------------------
 ; Object index
@@ -735,6 +736,27 @@ ObjSecuritySparkle:
 .Frame3:
 	dc.b	0, 0
 	dc.b	$F8, 0, 0, 4, 0, $FC
+
+; ----------------------------------------------------------------------
+; Sparkle data
+; ----------------------------------------------------------------------
+
+SecuritySparkleData:
+	dc.b	0, (.PaletteEnd-.Palette)/2-1
+.Palette:
+	dc.w	$000, $EE8, $000, $EE4, $EE0, $EC0, $000, $000
+	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
+	dc.w	$000, $EC0, $000, $EE0, $EC0, $EA0, $000, $000
+	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
+	dc.w	$000, $E80, $000, $EC0, $EA0, $E80, $000, $000
+	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
+.PaletteEnd:
+
+.Graphics:
+	dc.b	$00, $04, $80, $54, $0E, $71, $00, $83, $02, $02, $84, $03
+	dc.b	$06, $FF, $1F, $A0, $FC, $08, $1D, $BF, $01, $BA, $ED, $F8
+	dc.b	$0C, $0F, $F0, $5D, $6B, $A0, $3F, $81, $F8, $50, $FE, $00
+	even
 	
 ; ----------------------------------------------------------------------
 ; Japan security block

@@ -21,6 +21,8 @@
 ; ----------------------------------------------------------------------
 ; Get random number
 ; ----------------------------------------------------------------------
+; PARAMETERS:
+;	d0.w - Input seed
 ; RETURNS:
 ;	d0.l - Random number
 ; ----------------------------------------------------------------------
@@ -31,10 +33,10 @@ Random:
 	addi.w	#$5D35,d1
 	move.w	d1,rngSeed
 	
-	muls.w	d0,d1					; Get random number
+	muls.w	d0,d1					; Generate random number
 	swap	d0
 	clr.w	d0
-	asr.l	#1,d0
+	add.l	d0,d0
 	add.l	d1,d0
 	swap	d0
 	ext.l	d0
@@ -63,13 +65,12 @@ UpdateRandomSeed:
 ByteToBCD:
 	move.w	d0,-(sp)				; Save d0
 	
-	andi.l	#$FF,d1					; Get 2nd digit
+	andi.l	#$FF,d1					; Split digits
 	divu.w	#10,d1
 	move.w	d1,d0
-	asl.w	#4,d0
-	
-	swap	d1					; Get 1st digit
-	or.b	d0,d1
+	lsl.w	#4,d0
+	swap	d1
+	add.b	d0,d1
 	
 	move.w	(sp)+,d0				; Restore d0
 	rts
@@ -86,26 +87,37 @@ ByteToBCD:
 WordToBCD:
 	move.w	d0,-(sp)				; Save d0
 	
-	andi.l	#$FFFF,d1				; Get 4th digit
-	divu.w	#1000,d1
-	move.w	d1,d0
-	asl.w	#4,d0
-	
-	clr.w	d1					; Get 3rd digit
-	swap	d1
-	divu.w	#100,d1
-	or.b	d1,d0
-	asl.w	#4,d0
-	
-	clr.w	d1					; Get 2nd digit
-	swap	d1
+	andi.l	#$FFFF,d1				; Get 1st digit
 	divu.w	#10,d1
-	or.b	d1,d0
-	asl.w	#4,d0
+	swap	d1
+	move.w	d1,d0
+	clr.w	d1
+	swap	d1
 	
-	swap	d1					; Get 1st digit
-	or.b	d0,d1
+	divu.w	#10,d1					; Get 2nd digit
+	swap	d1
+	lsl.w	#4,d1
+	add.w	d1,d0
+	clr.w	d1
+	swap	d1
 	
+	divu.w	#10,d1					; Get 3rd digit
+	swap	d1
+	move.b	d1,-(sp)
+	clr.b	1(sp)
+	add.w	(sp)+,d0
+	clr.w	d1
+	swap	d1
+	
+	divu.w	#10,d1					; Get 4th digit
+	swap	d1
+	move.b	d1,-(sp)
+	move.w	(sp)+,d1
+	clr.b	d1
+	lsl.w	#4,d1
+	add.w	d1,d0
+	
+	move.w	d0,d1					; Get result
 	move.w	(sp)+,d0				; Restore d0
 	rts
 	

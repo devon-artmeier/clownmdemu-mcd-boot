@@ -76,6 +76,7 @@ ctrlTapP2		equ WORK_RAM+$FE23		; Player 2 controller data (tapped buttons)
 ctrlTimerP1		equ WORK_RAM+$FE24		; Player 1 controller directional pad timer
 ctrlTimerP2		equ WORK_RAM+$FE25		; Player 2 controller directional pad timer
 vblankFlags		equ WORK_RAM+$FE26		; V-BLANK handler flags
+vblankUserCounter	equ WORK_RAM+$FE27		; User V-BLANK counter
 vblankUpdatesOff	equ WORK_RAM+$FE28		; V-BLANK handler update disable flag
 cramUpdate		equ WORK_RAM+$FE29		; CRAM update flag
 rngSeed			equ WORK_RAM+$FE2A		; Random number generator seed

@@ -71,8 +71,7 @@
 	bra.w	DrawMCDGraphicsTilemap			; Draw tilemap for Mega CD generated graphics
 	bra.w	Random					; Get random number
 	bra.w	UpdateRandomSeed			; Update random number generator seed
-	rts						; Clear communication registers (not available in clownmdemu)
-	nop
+	bra.w	ClearCommRegisters			; Clear communication registers
 	rts						; Update communication registers (not available in clownmdemu)
 	nop
 	rts						; Get disc track information (not available in clownmdemu)
@@ -92,7 +91,7 @@
 	bra.w	SetVBlankHandler			; Set V-BLANK interrupt handler
 	bra.w	DrawSequentialTilemap			; Draw tilemap with sequential tile IDs
 	bra.w	DrawPartialTilemap			; Partially draw tilemap
-	bra.w	VRAMCopy				; Perform VRAM copy operation
+	bra.w	CopyVRAMRegion				; Copy a region of VRAM to another place in VRAM
 	rts						; Call indexed Sub CPU BIOS function (not available in clownmdemu)
 	nop
 	bra.w	ByteToBCD				; Convert byte value to BCD format

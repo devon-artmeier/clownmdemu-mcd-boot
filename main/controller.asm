@@ -43,6 +43,7 @@ ReadControllers:
 	lea	ctrlHoldP1,a5				; Read player 1 controller
 	lea	IO_DATA_1,a6
 	bsr.s	.Read
+	
 	addq.w	#2,a6					; Read player 2 controller
 	bsr.s	.Read
 
@@ -54,15 +55,15 @@ ReadControllers:
 
 .Read:
 	move.b	#0,(a6)					; Get start and A buttons
-	or.l	d0,d0
-	move.b	(a6),d0
-	add.b	d0,d0
-	add.b	d0,d0
+	moveq	#$C0>>2,d0
+	nop
+	and.b	(a6),d0
 	
 	move.b	#$40,(a6)				; Get directional pad, B, and C buttons
-	andi.w	#$C0,d0
-	move.b	(a6),d1
-	andi.w	#$3F,d1
+	add.b	d0,d0
+	add.b	d0,d0
+	moveq	#$3F,d1
+	and.b	(a6),d1
 	
 	or.b	d1,d0					; Combine button data
 	not.b	d0
@@ -125,38 +126,42 @@ GetControllerID:
 ; Update a controller's directional pad timer
 ; ----------------------------------------------------------------------
 ; PARAMETERS:
-;	d0.w - 0 for player 1, 2 for player 2
+;	d0.w - 0 for player 1, 1 for player 2
 ;	a1.l - Pointer to store button bits when the timer has reset
 ; ----------------------------------------------------------------------
 
 UpdateDPadTimer:
 	move.l	a0,-(sp)				; Save a0
 	
-	move.w	ctrlHoldP1,d1				; Get button data
-	tst.w	d0
-	beq.s	.CheckDPad
-	move.w	ctrlHoldP2,d1
+	clr.b	(a1)					; Clear timed directional pad bits
 	
-.CheckDPad:
+	lea	ctrlHoldP1,a0				; Get directional pad bits
+	adda.w	d0,a0
+	adda.w	d0,a0
+	move.w	(a0),d1
+	andi.w	#$F0F,d1
+	
 	lea	ctrlTimerP1,a0				; Get pointer to timer
 	adda.w	d0,a0
 	
-	andi.b	#$F,d1					; Has the directional pad just been pressed?
+	tst.b	d1					; Has the directional pad just been pressed?
 	bne.s	.Tapped					; If so, branch
-	andi.w	#$F00,d1				; Is the directional pad being held down?
+	tst.w	d1					; Is the directional pad being held down?
 	beq.s	.End					; If not, branch
 	
 	subq.b	#1,(a0)					; Decrement timer
 	bpl.s	.End					; If it hasn't run out, branch
 	move.b	#6-1,(a0)				; Reset timer
-	lsr.w	#8,d1					; Get directional pad bits
-	bra.s	.End
+	bra.s	.SetTimedBits
 	
 .Tapped:
 	move.b	#21-1,(a0)				; Set initial timer value
-
+	
+.SetTimedBits:
+	move.w	d1,-(sp)				; Save timed directional pad bits
+	move.b	(sp)+,(a1)
+	
 .End:
-	move.b	d1,(a1)					; Save directional pad bits
 	movea.l	(sp)+,a0				; Restore a0
 	rts
 

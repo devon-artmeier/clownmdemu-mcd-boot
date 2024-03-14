@@ -58,22 +58,13 @@ SoftReset:
 	move.w	#$2700,sr				; Disable interrupts
 	clr.l	vblankFlags				; Clear V-BLANK handler flags
 
-.WaitDMA:
-	move	VDP_CTRL,ccr				; Wait for any remaining DMA to finish
-	bvs.s	.WaitDMA				; (Also clears write pending flag)
-
-	moveq	#0,d0					; Clear communication registers
-	move.b	d0,GA_MAIN_FLAG
-	move.l	d0,GA_COMM_CMD_0
-	move.l	d0,GA_COMM_CMD_2
-	move.l	d0,GA_COMM_CMD_4
-	move.l	d0,GA_COMM_CMD_6
-
-	bsr.w	SetupCallTable				; Set up call table in RAM
+	bsr.w	WaitDMA					; Wait for any leftover DMA to finish
 	bsr.w	SetDefaultVDPRegs			; Set the default VDP register values
 	bsr.w	ClearVDPMemory				; Clear VDP memory
 	bsr.w	ClearPalette				; Clear palette
 	bsr.w	ClearSprites				; Clear sprites
+	bsr.w	ClearCommRegisters			; Clear communication registers
+	bsr.w	SetupCallTable				; Set up call table in RAM
 	
 	moveq	#$FFFFFF9F,d0				; PSG1 silence value
 	moveq	#4-1,d1					; 4 PSG channels

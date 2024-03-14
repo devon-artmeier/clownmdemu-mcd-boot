@@ -31,19 +31,18 @@ SetupModule:
 
 ; ----------------------------------------------------------------------
 
-.CheckModule:
+.CheckModuleType:
 	lea	.ModuleTypes(pc),a2			; Module types
-	bra.s	.ModuleCheckStart
+	
+.CheckModuleTypeLoop:
+	move.w	(a2)+,d1				; Get module name offset
+	bmi.s	.End					; If we are done, branch
 
-.ModuleCheckLoop:
 	move.l	(a2)+,d0				; Get string to compare
 	cmp.l	(a1,d1.w),d0				; Is this a valid module?
 	beq.s	.GotModule				; If so, branch
-
-.ModuleCheckStart:
-	move.w	(a2)+,d1				; Get module name offset
-	bpl.s	.ModuleCheckLoop			; If we are not done, check
-	bra.s	.End
+	
+	bra.s	.CheckModuleTypeLoop			; Check the next module type
 
 ; ----------------------------------------------------------------------
 
@@ -58,17 +57,17 @@ SetupModule:
 
 .SetJumpTable:
 	move.l	a1,d1					; Get start of jump table
-	bra.s	.JumpTableSetStart
 
-.JumpTableSetLoop:
+.SetJumpTableLoop:
+	move.w	(a1)+,d0				; Are we at the end?
+	beq.s	.CheckLinkedModule			; If so, branch
+	
 	ext.l	d0					; Set jump table entry
 	add.l	d1,d0
 	move.w	#$4EF9,(a0)+
 	move.l	d0,(a0)+
 
-.JumpTableSetStart:
-	move.w	(a1)+,d0				; Are we at the end?
-	bne.s	.JumpTableSetLoop			; If not, branch
+	bra.s	.SetJumpTableLoop			; Get the next jump table entry
 
 ; ----------------------------------------------------------------------
 
@@ -78,7 +77,7 @@ SetupModule:
 	beq.s	.End					; If there is none, branch
 	
 	adda.l	d0,a1					; Go to linked module
-	bra.s	.CheckModule
+	bra.s	.CheckModuleType
 
 .End:
 	movea.l	(sp)+,a2				; Restore a2

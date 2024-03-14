@@ -29,37 +29,37 @@
 ; ----------------------------------------------------------------------
 
 UpdateObjects:
-	move.l	a1,-(sp)				; Save a1
+	move.l	a1,-(sp)				; Save start of sprite data
 	move.l	a1,objSpriteSlot			; Set sprite slot address
 	move.w	#1,objSpriteLink			; Reset sprite link
 	
 .Update:
-	movem.w	d0-d1,-(sp)				; Save registers
+	movem.l	d0-d1,-(sp)				; Save registers
 	
 	move.w	(a0),d0					; Get object ID
+	andi.w	#$7FFC,d0
 	beq.s	.NextObject				; If there's no object in this slot, branch
 	
-	andi.w	#$7FFC,d0				; Run object code
-	movea.l	objIndexTable,a1
+	movea.l	objIndexTable,a1			; Run object code
 	movea.l	(a1,d0.w),a1
 	jsr	(a1)
 	
-	move.l	objXSpeed(a0),d2			; Move object
-	add.l	d2,objX(a0)
-	move.l	objYSpeed(a0),d3
-	add.l	d3,objY(a0)
+	move.l	objXSpeed(a0),d0			; Move object
+	add.l	d0,objX(a0)
+	move.l	objYSpeed(a0),d0
+	add.l	d0,objY(a0)
 	
 	tst.w	(a0)					; Has the object been deleted?
 	beq.s	.NextObject				; If so, branch
 	
 	movea.l	objSpriteSlot,a2			; Draw object
 	move.w	objSpriteLink,d6
-	bsr.w	DrawObjectSprite
+	bsr.s	DrawObjectSprite
 	move.l	a2,objSpriteSlot
 	move.w	d6,objSpriteLink
 	
 .NextObject:
-	movem.w	(sp)+,d0-d1				; Restore registers
+	movem.l	(sp)+,d0-d1				; Restore registers
 	adda.w	d1,a0					; Next object slot
 	dbf	d0,.Update				; Loop until all objects are updated
 	
@@ -102,15 +102,19 @@ DrawObjectSprite:
 	
 .GetPosition:
 	move.w	objY(a0),d2				; Get Y position
-	cmpi.w	#256+128,d2				; Is the object offscreen?
-	bhi.s	.End					; If so, branch
 	move.w	objX(a0),d3				; Get X position
 	
 .DrawSprite:
-	move.b	(a1)+,d0				; Set piece Y position
+	move.b	(a1)+,d0				; Get piece Y position
 	ext.w	d0
 	add.w	d2,d0
-	move.w	d0,(a2)+
+	
+	cmpi.w	#128-32,d0				; Is the object offscreen?
+	bcs.s	.SkipSprite				; If so, branch
+	cmpi.w	#224+32+128,d0
+	bhi.s	.SkipSprite				; If so, branch
+	
+	move.w	d0,(a2)+				; Set piece Y position
 	
 	move.b	(a1)+,(a2)+				; Set piece size
 	move.b	d6,(a2)+				; Set piece link
@@ -128,24 +132,29 @@ DrawObjectSprite:
 	
 .CheckX:
 	addq.w	#1,a1					; Skip over flipped piece X position
-	
 	ext.w	d0					; Add object X position
 	add.w	d3,d0
 	
-	move.w	d0,d4					; Is the object offscreen?
-	subi.w	#64-1,d4
-	cmpi.w	#256+(128-1),d4
-	bcs.s	.SetX					; If not, branch
+	cmpi.w	#128-32,d0				; Is the object offscreen?
+	bcs.s	.DiscardSprite				; If so, branch
+	cmpi.w	#320+32+128,d0
+	bhi.s	.DiscardSprite				; If so, branch
 	
-	subq.w	#6,a2					; Discard of sprite piece
-	dbf	d1,.DrawSprite				; Loop until sprite is drawn
-	rts
-	
-.SetX:
 	move.w	d0,(a2)+				; Set piece X position
+	
 	addq.b	#1,d6					; Next sprite link
 	dbf	d1,.DrawSprite				; Loop until sprite is drawn
-	
+	rts
+
+.SkipSprite:
+	addq.w	#5,a1					; Skip sprite piece
+	dbf	d1,.DrawSprite				; Loop until sprite is drawn
+	rts
+
+.DiscardSprite:
+	subq.w	#6,a2					; Discard of sprite piece
+	dbf	d1,.DrawSprite				; Loop until sprite is drawn
+
 .End:
 	rts
 
