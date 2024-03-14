@@ -28,7 +28,7 @@ SecurityAnimation:
 	bsr.w	ClearVDPMemory				; Clear VDP memory
 	bsr.w	ClearSprites				; Clear sprites
 	bsr.w	LoadFontDefault				; Load font
-	move.l	(sp)+,a1				; Restore a1
+	movea.l	(sp)+,a1				; Restore a1
 	
 	move.l	VBLANK_INT+2,-(sp)			; Save V-BLANK handler
 	move.w	VBLANK_INT,-(sp)
@@ -45,7 +45,7 @@ SecurityAnimation:
 	move.w	(sp),d1					; Check region
 	move.l	a1,-(sp)
 	bsr.w	SecurityCheckRegion
-	move.l	(sp)+,a1
+	movea.l	(sp)+,a1
 
 	move.w	(sp),d0					; Run animation based on type
 	add.w	d0,d0
