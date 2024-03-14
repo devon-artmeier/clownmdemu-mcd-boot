@@ -14,3 +14,10 @@ A minimal Mega CD boot ROM, specifically for use with
    'subbios.kos'.
 4. Assemble the "core.asm" file in the "main" folder to build the full boot
    ROM.
+
+## Mode 1 Compatibility
+It is important that the string 'SEGA' appears at exactly offset 0x6D in the
+compressed Sub CPU BIOS file. This is because software which uses the Mega CD
+in 'Mode 1' checks for this string to detect where the Sub CPU BIOS is. If the
+string is not at the expected position, then software may fail to detect the
+Mega CD or even crash!
