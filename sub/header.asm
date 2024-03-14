@@ -47,7 +47,7 @@
 	dc.l	Exception				; Reserved
 	dc.l	Exception				; Reserved
 	dc.l	Exception				; Reserved
-	dc.l	0					; Helps push "SEGA" to $6D when compressed
+	dc.l	Exception				; Reserved
 
 	dc.l	Exception				; Spurious exception
 	dc.l	GRAPHICS_INT				; IRQ1 (graphics interrupt)
