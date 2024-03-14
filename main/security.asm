@@ -23,12 +23,10 @@
 ; ----------------------------------------------------------------------
 
 SecurityAnimation:
-	move.l	a1,-(sp)				; Save a1
 	bsr.w	SetDefaultVDPRegs			; Set VDP registers
 	bsr.w	ClearVDPMemory				; Clear VDP memory
 	bsr.w	ClearSprites				; Clear sprites
 	bsr.w	LoadFontDefault				; Load font
-	movea.l	(sp)+,a1				; Restore a1
 	
 	move.l	VBLANK_INT+2,-(sp)			; Save V-BLANK handler
 	move.w	VBLANK_INT,-(sp)
@@ -171,8 +169,6 @@ SecurityCheckRegion:
 ; ----------------------------------------------------------------------
 
 CheckSecurityBlock:
-	move.l	a1,-(sp)				; Save a1
-
 	moveq	#0,d0					; Check Japanese security block
 	lea	SecurityJapan(pc),a1
 	move.w	#(SecurityJapanEnd-SecurityJapan)/2-1,d1
@@ -194,7 +190,6 @@ CheckSecurityBlock:
 	moveq	#-1,d0					; No match
 
 .End:
-	movea.l	(sp)+,a1				; Restore a1
 	tst.b	d0					; Check security block type
 	rts
 
