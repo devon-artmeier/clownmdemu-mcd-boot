@@ -39,7 +39,6 @@ HardReset:
 .NoTMSS:
 	moveq	#0,d0					; Set d0 to 0
 	movea.w	d0,a0					; End of Work RAM
-	move.l	a0,usp					; Clear user stack pointer
 	
 	move.w	#$8000/16-1,d1				; Clear Work RAM up to the initial program
 
@@ -101,6 +100,14 @@ SoftReset:
 	bclr	#1,GA_RESET				; Give back the Sub CPU's bus
 	bne.s	.GiveSubCPUBus
 
+	movem.l	.Zero(pc),d0-a6				; Clear registers
+	move.l	a6,usp
+
 	jmp	WORK_RAM				; Go to the initial program
+
+; ----------------------------------------------------------------------
+
+.Zero:
+	dcb.l	7+6, 0
 
 ; ----------------------------------------------------------------------
