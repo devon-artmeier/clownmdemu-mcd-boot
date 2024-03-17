@@ -44,7 +44,7 @@
 	include	"main/object.asm"
 	include	"main/main.asm"
 	include	"main/control_panel.asm"
-	include	"main/security.asm"
+	include	"main/splash.asm"
 
 ; ----------------------------------------------------------------------
 ; Sub CPU program
@@ -52,6 +52,8 @@
 ; It is vital for this data to appear at exactly this address, as
 ; software that uses the Mega CD in 'Mode 1' will try to manually load
 ; the Sub CPU program from here!
+; ----------------------------------------------------------------------
+
 	dcb.b	$16000-*, $FF
 SubCPUBIOS:
 	incbin	"build/subbios.kos"

@@ -1,9 +1,7 @@
 ; ----------------------------------------------------------------------
 ; Mega CD minimal boot ROM for clownmdemu
 ; ----------------------------------------------------------------------
-; Main CPU security block functions
-; TODO: Rename this since it barely has anything to do with the
-; 'security block' anymore.
+; Main CPU splash screen
 ; ----------------------------------------------------------------------
 ; Copyright (c) 2024 Devon Artmeier
 ;
@@ -21,20 +19,22 @@
 ; ----------------------------------------------------------------------
 
 ; ----------------------------------------------------------------------
-; Security block animation
-;
+; Splash screen
+; ----------------------------------------------------------------------
 ; Sega's BIOS loads a font and logo. Since it does not clear VRAM before
 ; booting anything, games and homebrew are able to use them. Here, we
 ; provide our own custom font and logo.
+;
 ; One bit of homebrew that uses the font is 'Sega LOader', which can be
 ; found here: https://www.retrodev.com/slo.html
+;
 ; Software which uses the logo include Devon's Bad Apple demo and the
 ; CrazySonic ROM-hack:
 ; https://github.com/DevsArchive/bad-apple-sega-cd-30-fps
-; https://forums.sonicretro.org/index.php?threads/crazysonic-now-on-sega-cd-for-some-reason.34617/
+; https://forums.sonicretro.org/index.php?posts/1056900/
 ; ----------------------------------------------------------------------
 
-SecurityAnimation:
+SplashScreen:
 	bsr.w	SetDefaultVDPRegs			; Set VDP registers
 	bsr.w	ClearVDPMemory				; Clear VDP memory
 	bsr.w	ClearSprites				; Clear sprites
@@ -46,28 +46,24 @@ SecurityAnimation:
 	lea	WORK_RAM,a0				; Get security block type
 	bsr.w	CheckSecurityBlock
 	move.w	d0,-(sp)
-	bmi.w	SecurityInvalidDisc			; If it's invalid, branch
+	bmi.w	InvalidSecurityBlock			; If it's invalid, branch
 	
 	move	#$2700,sr				; Set V-BLANK handler
 	move.w	#$4EF9,VBLANK_INT
-	move.l	#VBlank_Security,VBLANK_INT+2
+	move.l	#VBlank_Splash,VBLANK_INT+2
 	
 	move.w	(sp),d1					; Check region
-	bsr.w	SecurityCheckRegion
+	bsr.w	CheckRegion
 
-	lea	SecurityPalette(pc),a1			; Load palette
+	lea	SplashPalette(pc),a1			; Load palette
 	bsr.w	LoadPalette
 
-	move.l	#$44200000,VDP_CTRL			; Load font graphics
-	lea	SecurityFontGraphics(pc),a1
-	bsr.w	NemDec
-
 	move.l	#$60000000,VDP_CTRL			; Load logo graphics
-	lea	SecurityLogoGraphics(pc),a1
+	lea	SplashLogoGraphics(pc),a1
 	bsr.w	NemDec
 
 	move.w	#$6100,d0				; Decompress logo tilemap
-	lea	SecurityLogoTilemap(pc),a1
+	lea	SplashLogoTilemap(pc),a1
 	lea	decompBuffer,a2
 	bsr.w	EniDec
 
@@ -98,10 +94,10 @@ SecurityAnimation:
 	even
 
 ; ----------------------------------------------------------------------
-; Invalid disc error message
+; Invalid security block error message
 ; ----------------------------------------------------------------------
 
-SecurityInvalidDisc:
+InvalidSecurityBlock:
 	lea	.ErrorString(pc),a1			; Draw error string
 	move.l	#$458E0003,d0
 	bsr.w	DrawText
@@ -133,7 +129,7 @@ SecurityInvalidDisc:
 ;	       2 = Europe
 ; ----------------------------------------------------------------------
 
-SecurityCheckRegion:
+CheckRegion:
 	bsr.w	StopZ80					; Get the console's PAL settings
 	move.b	VERSION,d0
 	andi.b	#$40,d0
@@ -190,6 +186,7 @@ SecurityCheckRegion:
 	dc.b	" THIS IS AN NTSC DISC RUNNING", 0
 	dc.b	"ON A PAL SYSTEM! THINGS MAY NOT", 0
 	dc.b	"       WORK AS EXPECTED.", -1
+
 .PALOnNTSC:
 	dc.b	"            WARNING", 0, 0
 	dc.b	"  THIS IS A PAL DISC RUNNING", 0
@@ -244,22 +241,21 @@ CheckSecurityBlock:
 	moveq	#0,d3
 
 .CheckLoop:
-	add.w	(a1)+,d3				; Compute checksum
+	add.w	(a1)+,d3				; Calculate checksum
 	dbf	d1,.CheckLoop
 
-	cmp.w	d2,d3
+	cmp.w	d2,d3					; Check calculated checksum value
 	rts
 
 ; ----------------------------------------------------------------------
 ; V-BLANK handler
 ; ----------------------------------------------------------------------
 
-VBlank_Security:
+VBlank_Splash:
 	movem.l	d0-a6,-(sp)				; Save registers
 
 	bsr.w	TriggerSubIRQ2				; Trigger Sub CPU IRQ2
 	bsr.w	UpdateCRAM				; Update CRAM
-	bsr.w	UpdateSpriteVRAM			; Update sprite data in VRAM
 
 	clr.b	vblankFlags				; Clear V-BLANK handler flags
 	movem.l	(sp)+,d0-a6				; Restore registers
@@ -268,7 +264,8 @@ VBlank_Security:
 ; ----------------------------------------------------------------------
 ; Assets
 ; ----------------------------------------------------------------------
-SecurityPalette:
+
+SplashPalette:
 	dc.b	0,(.DataEnd-.Data)/2-1
 .Data:
 	dc.w	0x000, 0xEE8, 0x000, 0x000, 0x000, 0x000, 0x000, 0x000
@@ -281,62 +278,7 @@ SecurityPalette:
 	dc.w	0x66C, 0x44A, 0x448, 0x22A, 0x000, 0x000, 0x000, 0x000
 .DataEnd:
 
-SecurityFontGraphics:
-	dc.b	$00, $5F, $80, $05, $1C, $16, $3E, $23, $05, $34, $0D, $45
-	dc.b	$1E, $55, $1D, $64, $0C, $73, $04, $81, $01, $00, $FF, $AC
-	dc.b	$63, $13, $12, $75, $C7, $9C, $49, $24, $9D, $71, $40, $AE
-	dc.b	$3C, $E2, $81, $5C, $49, $8E, $85, $71, $D1, $D7, $14, $3A
-	dc.b	$9A, $57, $C7, $CE, $BA, $EB, $E3, $E5, $24, $F3, $AE, $3C
-	dc.b	$79, $C7, $15, $F3, $C7, $12, $79, $89, $24, $92, $3A, $C6
-	dc.b	$31, $12, $79, $18, $C6, $3A, $92, $3C, $E3, $8D, $1A, $E3
-	dc.b	$8F, $24, $93, $18, $F0, $3C, $C4, $92, $49, $31, $D4, $92
-	dc.b	$74, $12, $49, $24, $93, $C9, $23, $1D, $63, $AC, $49, $83
-	dc.b	$55, $5C, $71, $5C, $71, $55, $A2, $4E, $BA, $79, $C6, $31
-	dc.b	$E0, $49, $A3, $55, $D7, $5D, $74, $12, $68, $D5, $78, $8A
-	dc.b	$AD, $12, $74, $F3, $8D, $7C, $D0, $75, $89, $34, $15, $81
-	dc.b	$18, $A1, $27, $82, $B0, $35, $55, $5A, $24, $D0, $63, $AE
-	dc.b	$BA, $C4, $98, $35, $5A, $35, $55, $5A, $24, $F0, $D5, $68
-	dc.b	$62, $AB, $44, $93, $A9, $26, $24, $98, $92, $63, $A9, $27
-	dc.b	$1D, $75, $11, $24, $D0, $49, $41, $24, $9A, $88, $EB, $A9
-	dc.b	$30, $6A, $BA, $EA, $62, $4F, $03, $E7, $9C, $7C, $71, $C7
-	dc.b	$1C, $71, $C7, $C1, $C4, $02, $51, $AA, $A0, $AA, $AA, $AA
-	dc.b	$92, $86, $AA, $86, $AA, $AA, $84, $9E, $1A, $AA, $C6, $2B
-	dc.b	$44, $9A, $1A, $AA, $AA, $AA, $AA, $12, $68, $2B, $03, $58
-	dc.b	$C0, $49, $41, $58, $1A, $C6, $24, $81, $58, $E0, $AA, $AA
-	dc.b	$D0, $92, $AA, $AA, $82, $AA, $AA, $AA, $4A, $0F, $31, $8C
-	dc.b	$78, $12, $50, $79, $8C, $79, $C7, $52, $75, $55, $F3, $5C
-	dc.b	$78, $79, $F3, $55, $25, $63, $18, $C6, $02, $4F, $9E, $70
-	dc.b	$A7, $1C, $71, $C7, $1F, $3E, $71, $E7, $1E, $49, $F2, $A9
-	dc.b	$F2, $8E, $2B, $82, $BE, $2A, $A4, $D1, $AA, $AA, $AA, $AA
-	dc.b	$D1, $26, $86, $AA, $AA, $86, $B1, $24, $1A, $AA, $AA, $AA
-	dc.b	$F8, $D0, $49, $F0, $6A, $AA, $A8, $6A, $AA, $A4, $D0, $A8
-	dc.b	$23, $14, $24, $D0, $79, $8C, $63, $12, $79, $55, $55, $55
-	dc.b	$55, $5A, $24, $D5, $55, $6B, $8F, $38, $EB, $12, $6B, $CE
-	dc.b	$3C, $E3, $E7, $CE, $38, $E3, $8E, $14, $E3, $C9, $3E, $56
-	dc.b	$B8, $EB, $1D, $71, $AA, $92, $AB, $5C, $75, $8C, $62, $4F
-	dc.b	$03, $AE, $BA, $EB, $01, $27, $8E, $B1, $8C, $61, $25, $56
-	dc.b	$B8, $D0, $79, $E0, $79, $26, $18, $C6, $31, $D2, $4C, $75
-	dc.b	$C4, $92, $49, $24, $93, $41, $26, $A2, $49, $24, $9D, $0A
-	dc.b	$AA, $AA, $AD, $09, $2B, $18, $1A, $AA, $AA, $12, $4F, $05
-	dc.b	$63, $10, $24, $C6, $34, $2A, $AA, $B4, $24, $9A, $35, $54
-	dc.b	$15, $02, $4D, $1A, $AF, $83, $CC, $62, $49, $02, $AA, $AA
-	dc.b	$AB, $42, $AB, $46, $B1, $81, $AA, $AA, $AA, $93, $C9, $8C
-	dc.b	$63, $12, $4E, $26, $31, $8A, $AD, $13, $58, $AA, $F9, $A3
-	dc.b	$CF, $9A, $A9, $2B, $18, $C6, $2B, $44, $93, $4E, $1F, $3E
-	dc.b	$7C, $E3, $E7, $CE, $3E, $7C, $E3, $E7, $C9, $25, $1A, $AA
-	dc.b	$AA, $AA, $A9, $26, $8D, $55, $55, $56, $89, $27, $86, $AA
-	dc.b	$AA, $AA, $86, $B1, $20, $D5, $55, $55, $68, $63, $13, $46
-	dc.b	$AA, $B1, $89, $24, $0A, $82, $28, $49, $AC, $74, $3C, $C5
-	dc.b	$68, $92, $6A, $AA, $AA, $AA, $B4, $49, $35, $55, $5A, $E3
-	dc.b	$CE, $3A, $92, $6B, $E7, $CE, $3E, $7C, $E3, $E7, $CE, $3E
-	dc.b	$7C, $F8, $E1, $24, $AA, $D7, $1D, $75, $C6, $AA, $49, $55
-	dc.b	$55, $55, $55, $A1, $55, $A2, $68, $3A, $EB, $AE, $82, $4E
-	dc.b	$BA, $E9, $8C, $44, $9D, $63, $18, $C6, $24, $EA, $30, $EB
-	dc.b	$1D, $49, $26, $3E, $57, $1C, $57, $C9, $26, $83, $E7, $9C
-	dc.b	$70, $71, $C7, $15, $C7, $07, $1C, $79, $F0, $27, $C0
-	even
-
-SecurityLogoGraphics:
+SplashLogoGraphics:
 	dc.b	$80, $4D, $80, $06, $38, $15, $1A, $25, $19, $36, $36, $45
 	dc.b	$16, $54, $09, $64, $04, $72, $00, $81, $04, $05, $82, $04
 	dc.b	$07, $83, $04, $0A, $16, $3A, $89, $07, $7D, $8C, $04, $06
@@ -394,7 +336,7 @@ SecurityLogoGraphics:
 	dc.b	$FE, $00, $00
 	even
 
-SecurityLogoTilemap:
+SplashLogoTilemap:
 	dc.b	$07, $03, $00, $00, $00, $05, $0E, $40, $0F, $92, $08, $02
 	dc.b	$80, $33, $82, $19, $0E, $08, $44, $78, $01, $84, $E0, $95
 	dc.b	$0F, $82, $19, $3E, $20, $60, $88, $5C, $42, $A9, $50, $F8
@@ -407,4 +349,5 @@ SecurityLogoTilemap:
 	dc.b	$13, $38, $32, $D1, $E1, $84, $A3, $00, $99, $01, $E1, $80
 	dc.b	$FE, $00
 	even
+
 ; ----------------------------------------------------------------------

@@ -87,7 +87,7 @@
 	rts						; Call Sub CPU scene function (not available in clownmdemu)
 	nop
 	bra.w	TriggerSubIRQ2				; Trigger Sub CPU's IRQ2
-	bra.w	SecurityAnimation			; Display security block animation
+	bra.w	SplashScreen				; Display splash screen
 	bra.w	SetVBlankHandler			; Set V-BLANK interrupt handler
 	bra.w	DrawSequentialTilemap			; Draw tilemap with sequential tile IDs
 	bra.w	DrawPartialTilemap			; Partially draw tilemap
