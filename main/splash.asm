@@ -162,7 +162,7 @@ CheckRegion:
 	
 	bsr.w	EnableDisplay				; Enable display
 
-	move.w	#(60*8)-1,d2				; Wait for several seconds
+	move.w	#(60*5)-1,d2				; Wait for several seconds
 
 .Wait:
 	bsr.w	DefaultVSync				; VSync
@@ -266,7 +266,7 @@ VBlank_Splash:
 ; ----------------------------------------------------------------------
 
 SplashPalette:
-	dc.b	0,(.DataEnd-.Data)/2-1
+	dc.b	0, (.DataEnd-.Data)/2-1
 .Data:
 	dc.w	$000, $EE8, $000, $000, $000, $000, $000, $000
 	dc.w	$000, $000, $000, $000, $000, $000, $000, $000
