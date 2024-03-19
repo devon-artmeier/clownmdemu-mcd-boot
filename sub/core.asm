@@ -34,8 +34,8 @@
 	include	"sub/call_table.asm"
 	include	"sub/interrupt.asm"
 	include	"sub/module.asm"
-	include	"sub/pcm.asm"
 	include	"sub/main.asm"
+	include	"sub/pcm.asm"
 	
 ; ----------------------------------------------------------------------
 ; Padding
