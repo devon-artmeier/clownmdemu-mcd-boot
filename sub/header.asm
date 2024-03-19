@@ -23,9 +23,9 @@
 ; ----------------------------------------------------------------------
 
 	dc.l	stackBase				; Stack pointer
-	dc.l	HardReset				; Reset
+	dc.l	HardResetEntry				; Reset
 
-	dc.l	Exception				; Bus error
+	dc.l	ExceptionEntry				; Bus error
 	dc.l	ADDRESS_ERROR				; Address error
 	dc.l	INSTRUCTION_ERROR			; Illegal instruction
 	dc.l	DIVISION_ERROR				; Division by zero error
@@ -36,20 +36,20 @@
 	dc.l	LINE_A_EXCEPT				; Line A emulator exception
 	dc.l	LINE_F_EXCEPT				; Line F emulator exception
 
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
 
-	dc.l	Exception				; Spurious exception
+	dc.l	ExceptionEntry				; Spurious exception
 	dc.l	GRAPHICS_INT				; IRQ1 (graphics interrupt)
 	dc.l	MEGA_DRIVE_INT				; IRQ2 (Mega Drive interrupt)
 	dc.l	TIMER_INT				; IRQ3 (timer interrupt)
@@ -75,22 +75,22 @@
 	dc.l	TRAP_14					; TRAP #14 exception
 	dc.l	TRAP_15					; TRAP #15 exception
 
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
-	dc.l	Exception				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
+	dc.l	ExceptionEntry				; Reserved
 
 ; ----------------------------------------------------------------------
 ; Header
@@ -110,5 +110,19 @@
 	dc.b	"            "
 	dc.b	"                                        "
 	dc.b	"JUE             "
+
+; ----------------------------------------------------------------------
+; Hard reset entry point
+; ----------------------------------------------------------------------
+
+HardResetEntry:
+	bra.w	HardReset
+
+; ----------------------------------------------------------------------
+; Exception entry point
+; ----------------------------------------------------------------------
+
+ExceptionEntry:
+	bra.w	Exception
 
 ; ----------------------------------------------------------------------
