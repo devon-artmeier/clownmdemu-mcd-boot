@@ -54,6 +54,7 @@ HardReset:
 	move.l	d0,(a0)+
 	dbf	d1,.ClearRAMVars
 
+	bsr.w	InitPCM					; Initialize PCM
 	bsr.w	SetupCallTable				; Set up call table
 
 	ori.b	#%00010100,GA_IRQ_MASK			; Enable Mega Drive and CDD interrupts
