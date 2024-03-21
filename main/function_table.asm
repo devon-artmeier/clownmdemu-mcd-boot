@@ -30,45 +30,45 @@
 	nop
 	bra.w	EnableHBlank				; Enable and set up H-BLANK interrupt
 	bra.w	ReadControllers				; Read 3 button controllers
-	bra.w	GetControllerID				; Get controller ID
-	bra.w	ClearVDPMemory				; Clear VDP memory
+	bra.w	GetControllerId				; Get controller ID
+	bra.w	ClearVdpMemory				; Clear VDP memory
 	bra.w	ClearScreen				; Clear screen
-	bra.w	ClearVSRAM				; Clear VSRAM
-	bra.w	SetDefaultVDPRegs			; Set default VDP register values
-	bra.w	SetVDPRegisters				; Set VDP register values
-	bra.w	FillVDPRegion				; Fill region of VDP memory
-	bra.w	ClearVDPRegion				; Clear region of VDP memory
-	bra.w	ClearVRAMRegion				; Clear region of VRAM
-	bra.w	FillVRAMRegion				; Fill region of VRAM
+	bra.w	ClearVsram				; Clear VSRAM
+	bra.w	SetDefaultVdpRegs			; Set default VDP register values
+	bra.w	SetVdpRegisters				; Set VDP register values
+	bra.w	FillVdpRegion				; Fill region of VDP memory
+	bra.w	ClearVdpRegion				; Clear region of VDP memory
+	bra.w	ClearVramRegion				; Clear region of VRAM
+	bra.w	FillVramRegion				; Fill region of VRAM
 	bra.w	DrawTilemap				; Draw tilemap
 	bra.w	DrawByteTilemap				; Draw tilemap (byte sized tile IDs)
-	bra.w	FillVDPPlaneRegion			; Fill VDP plane region
-	bra.w	DMA68kMemToVRAM				; DMA transfer from 68000 memory to VRAM
-	bra.w	DMAWordRAMToVRAM			; DMA transfer from Word RAM to VRAM
+	bra.w	FillVdpPlaneRegion			; Fill VDP plane region
+	bra.w	Dma68kMemToVram				; DMA transfer from 68000 memory to VRAM
+	bra.w	DmaWordRamToVram			; DMA transfer from Word RAM to VRAM
 	bra.w	EnableDisplay				; Enable display
 	bra.w	DisableDisplay				; Disable display
 	bra.w	LoadPaletteNoUpdate			; Load palette (don't set the update flag)
 	bra.w	LoadPalette				; Load palette
-	bra.w	UpdateCRAM				; Update CRAM
+	bra.w	UpdateCram				; Update CRAM
 	bra.w	NemDec					; Decompress Nemesis graphics into VRAM
-	bra.w	NemDecToRAM				; Decompress Nemesis graphics into RAM
+	bra.w	NemDecToRam				; Decompress Nemesis graphics into RAM
 	bra.w	UpdateObjects				; Update objects
 	bra.w	ClearMemoryRegion			; Clear region of memory
 	bra.w	ClearLargeMemoryRegion			; Clear large region of memory
 	bra.w	DrawObjectSprite			; Draw object sprite
 	bra.w	VSync					; VSync
 	bra.w	DefaultVSync				; VSync with default flags
-	bra.w	UpdateSpriteVRAM			; Update sprites
+	bra.w	UpdateSpriteVram			; Update sprites
 	bra.w	UnkCopyFunction				; Unknown and bugged copy and caller function
-	bra.w	EnableWorkRAMHBlank			; Enable and set up H-BLANK interrupt (in second half of Work RAM)
+	bra.w	EnableWorkRamHBlank			; Enable and set up H-BLANK interrupt (in second half of Work RAM)
 	bra.w	DisableHBlank				; Disable H-BLANK interrupt
 	bra.w	DrawText				; Draw text
-	bra.w	Decode1BPPGraphics			; Decode 1BPP graphics into VRAM
+	bra.w	Decode1bppGraphics			; Decode 1BPP graphics into VRAM
 	bra.w	LoadFont				; Load the BIOS font
 	bra.w	LoadFontDefault				; Load the BIOS font with the default settings
-	bra.w	UpdateDPadTimer				; Update controller D-Pad timer
+	bra.w	UpdateDpadTimer				; Update controller D-Pad timer
 	bra.w	EniDec					; Decompress Enigma mappings into RAM
-	bra.w	DrawMCDGraphicsTilemap			; Draw tilemap for Mega CD generated graphics
+	bra.w	DrawMcdGraphicsTilemap			; Draw tilemap for Mega CD generated graphics
 	bra.w	Random					; Get random number
 	bra.w	UpdateRandomSeed			; Update random number generator seed
 	bra.w	ClearCommRegisters			; Clear communication registers
@@ -86,22 +86,22 @@
 	nop
 	rts						; Call Sub CPU scene function (not available in clownmdemu)
 	nop
-	bra.w	TriggerSubIRQ2				; Trigger Sub CPU's IRQ2
+	bra.w	TriggerSubCpuIrq2			; Trigger Sub CPU's IRQ2
 	bra.w	SplashScreen				; Display splash screen
 	bra.w	SetVBlankHandler			; Set V-BLANK interrupt handler
 	bra.w	DrawSequentialTilemap			; Draw tilemap with sequential tile IDs
 	bra.w	DrawPartialTilemap			; Partially draw tilemap
-	bra.w	CopyVRAMRegion				; Copy a region of VRAM to another place in VRAM
+	bra.w	CopyVramRegion				; Copy a region of VRAM to another place in VRAM
 	rts						; Call indexed Sub CPU BIOS function (not available in clownmdemu)
 	nop
-	bra.w	ByteToBCD				; Convert byte value to BCD format
-	bra.w	WordToBCD				; Convert word value to BCD format
+	bra.w	ByteToBcd				; Convert byte value to BCD format
+	bra.w	WordToBcd				; Convert word value to BCD format
 	bra.w	BlackOutDisplay				; Black out display
 	bra.w	FadeOutPalette				; Fade out palette
 	bra.w	FadeInPalette				; Fade in palette
 	bra.w	SetupPaletteFadeIn			; Set up palette fade in
-	bra.w	FlushDMAQueue				; Flush Word RAM DMA queue
-	bra.w	FlushShortDMAQueue			; Flush short Word RAM DMA queue
+	bra.w	FlushDmaQueue				; Flush Word RAM DMA queue
+	bra.w	FlushShortDmaQueue			; Flush short Word RAM DMA queue
 	bra.w	AddTimeCodes				; Add 2 minute:second timecodes together
 	bra.w	SubtractTimeCodes			; Subtract minute:second:centisecond:xx timecode from another
 	

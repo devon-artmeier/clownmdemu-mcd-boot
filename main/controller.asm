@@ -86,7 +86,7 @@ ReadControllers:
 ;	d7.b - Controller ID
 ; ----------------------------------------------------------------------
 
-GetControllerID:
+GetControllerId:
 	move.l	d0,-(sp)				; Save d0
 	bsr.w	StopZ80					; Stop the Z80
 	
@@ -130,7 +130,7 @@ GetControllerID:
 ;	a1.l - Pointer to store button bits when the timer has reset
 ; ----------------------------------------------------------------------
 
-UpdateDPadTimer:
+UpdateDpadTimer:
 	move.l	a0,-(sp)				; Save a0
 	
 	clr.b	(a1)					; Clear timed directional pad bits

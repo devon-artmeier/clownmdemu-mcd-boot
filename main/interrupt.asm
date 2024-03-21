@@ -22,14 +22,14 @@
 ; Default V-BLANK interrupt
 ; ----------------------------------------------------------------------
 
-VBlankInt:
+VBlankInterrupt:
 	movem.l	d0-a6,-(sp)				; Save registers
-	bsr.w	TriggerSubIRQ2				; Trigger Sub CPU IRQ2
+	bsr.w	TriggerSubCpuIrq2			; Trigger Sub CPU IRQ2
 	
 	tst.b	vblankUpdatesOff			; Are updates disabled?
 	bne.s	.NoUpdates
 	
-	bsr.w	UpdateCRAM				; Update CRAM
+	bsr.w	UpdateCram				; Update CRAM
 	
 	btst	#1,vblankFlags				; Is the user handler enabled?
 	beq.s	.NoUpdates				; If not, branch
@@ -99,7 +99,7 @@ SetVBlankHandler:
 ;	a1.w - Pointer to handler (in second half of Work RAM)
 ; ----------------------------------------------------------------------
 
-EnableWorkRAMHBlank:
+EnableWorkRamHBlank:
 	move.l	a1,HBLANK_INT+2				; Set handler
 	move.w	a1,GA_HBLANK
 	
@@ -135,7 +135,7 @@ DisableHBlank:
 ; Trigger Sub CPU's IRQ2
 ; ----------------------------------------------------------------------
 
-TriggerSubIRQ2:
+TriggerSubCpuIrq2:
 	bset	#0,GA_IRQ2				; Trigger Sub CPU's IRQ2
 	rts
 

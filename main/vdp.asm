@@ -22,8 +22,8 @@
 ; Set default VDP registers
 ; ----------------------------------------------------------------------
 
-SetDefaultVDPRegs:
-	lea	DefaultVDPRegs(pc),a1			; Default VDP registers
+SetDefaultVdpRegs:
+	lea	DefaultVdpRegs(pc),a1			; Default VDP registers
 	move.w	#$40*2,planeStride			; Set plane stride to 64 tiles
 
 ; ----------------------------------------------------------------------
@@ -33,7 +33,7 @@ SetDefaultVDPRegs:
 ;	a1.l - Pointer to VDP register table (0 terminated)
 ; ----------------------------------------------------------------------
 
-SetVDPRegisters:
+SetVdpRegisters:
 	lea	vdpReg00,a2				; VDP register cache
 
 .SetupRegs:
@@ -58,7 +58,7 @@ SetVDPRegisters:
 
 ; ----------------------------------------------------------------------
 
-DefaultVDPRegs:
+DefaultVdpRegs:
 	dc.w	$8000|(%00000100)			; Disable H-BLANK interrupt
 	dc.w	$8100|(%00100100)			; Enable V-BLANK interrupt
 	dc.w	$8200|($C000/$400)			; Plane A address
@@ -80,9 +80,9 @@ DefaultVDPRegs:
 ; Wait for a DMA to finish
 ; ----------------------------------------------------------------------
 
-WaitDMA:
+WaitDma:
 	move	VDP_CTRL,ccr				; Has the operation finished?
-	bvs.s	WaitDMA					; If not, wait
+	bvs.s	WaitDma					; If not, wait
 	rts
 
 ; ----------------------------------------------------------------------
@@ -98,12 +98,12 @@ SetBlackBackground:
 ; Clear VDP memory
 ; ----------------------------------------------------------------------
 
-ClearVDPMemory:
+ClearVdpMemory:
 	bsr.s	SetBlackBackground			; Set background to black
-	bsr.w	ClearVSRAM				; Clear VSRAM
+	bsr.w	ClearVsram				; Clear VSRAM
 	move.l	#$40000000,d0				; Clear VRAM
 	move.w	#$10000-1,d1
-	bra.s	ClearVRAMRegion
+	bra.s	ClearVramRegion
 
 ; ----------------------------------------------------------------------
 ; Clear screen
@@ -111,9 +111,9 @@ ClearVDPMemory:
 
 ClearScreen:
 	bsr.s	ClearSprites				; Clear sprites
-	bsr.s	ClearVDPPlaneA				; Clear plane A
-	bsr.s	ClearVDPPlaneB				; Clear plane B
-	bra.s	ClearVDPWindow				; Clear window plane
+	bsr.s	ClearVdpPlaneA				; Clear plane A
+	bsr.s	ClearVdpPlaneB				; Clear plane B
+	bra.s	ClearVdpWindow				; Clear window plane
 
 ; ----------------------------------------------------------------------
 ; Clear sprites
@@ -140,13 +140,13 @@ ClearPalette:
 	
 	move.l	#$C0000000,d0				; CRAM WRITE $0000
 	moveq	#$80/2-1,d1				; Clear all entries
-	bra.s	ClearVDPRegion
+	bra.s	ClearVdpRegion
 
 ; ----------------------------------------------------------------------
 ; Clear VSRAM
 ; ----------------------------------------------------------------------
 
-ClearVSRAM:
+ClearVsram:
 	move.l	#$40000010,d0				; VSRAM WRITE $0000
 	moveq	#$50/2-1,d1				; Clear all entries
 
@@ -158,7 +158,7 @@ ClearVSRAM:
 ;	d1.w - Number of words to clear (minus 1)
 ; ----------------------------------------------------------------------
 
-ClearVDPRegion:
+ClearVdpRegion:
 	moveq	#0,d2					; Fill with 0
 
 ; ----------------------------------------------------------------------
@@ -170,7 +170,7 @@ ClearVDPRegion:
 ;	d2.w - Value to fill with
 ; ----------------------------------------------------------------------
 
-FillVDPRegion:
+FillVdpRegion:
 	move.l	d0,VDP_CTRL				; Set VDP command
 
 .Fill:
@@ -182,25 +182,25 @@ FillVDPRegion:
 ; Clear window plane
 ; ----------------------------------------------------------------------
 
-ClearVDPWindow:
+ClearVdpWindow:
 	move.l	#$60000002,d0				; Clear window plane
 	move.w	#$E00-1,d1
-	bra.w	ClearVRAMRegion
+	bra.w	ClearVramRegion
 
 ; ----------------------------------------------------------------------
 ; Clear plane A
 ; ----------------------------------------------------------------------
 
-ClearVDPPlaneA:
+ClearVdpPlaneA:
 	move.l	#$40000003,d0				; Clear plane A
 	move.w	#$2000-1,d1
-	bra.s	ClearVRAMRegion
+	bra.s	ClearVramRegion
 
 ; ----------------------------------------------------------------------
 ; Clear plane B
 ; ----------------------------------------------------------------------
 
-ClearVDPPlaneB:
+ClearVdpPlaneB:
 	move.l	#$60000003,d0				; Clear plane B
 	move.w	#$2000-1,d1
 
@@ -212,7 +212,7 @@ ClearVDPPlaneB:
 ;	d1.w - Number of bytes to clear (minus 1)
 ; ----------------------------------------------------------------------
 
-ClearVRAMRegion:
+ClearVramRegion:
 	moveq	#0,d2					; Fill with 0
 
 ; ----------------------------------------------------------------------
@@ -224,7 +224,7 @@ ClearVRAMRegion:
 ;	d2.b - Value to fill with
 ; ----------------------------------------------------------------------
 
-FillVRAMRegion:
+FillVramRegion:
 	lea	VDP_CTRL,a6				; VDP control port
 
 	move.w	#$8F01,(a6)				; Set auto-increment to 1
@@ -240,7 +240,7 @@ FillVRAMRegion:
 	move.l	d0,(a6)
 	move.w	d2,-4(a6)
 
-	bsr.w	WaitDMA					; Wait for the operation to finish
+	bsr.w	WaitDma					; Wait for the operation to finish
 
 	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
 	move.w	#$8F02,(a6)				; Set auto-increment to 2
@@ -255,7 +255,7 @@ FillVRAMRegion:
 ;	d2.w - Number of bytes to copy (minus 1)
 ; ----------------------------------------------------------------------
 
-CopyVRAMRegion:
+CopyVramRegion:
 	lea	VDP_CTRL,a6				; VDP control port
 
 	move.w	#$8F01,(a6)				; Set auto-increment to 1
@@ -274,7 +274,7 @@ CopyVRAMRegion:
 	ori.w	#$C0,d0
 	move.l	d0,(a6)
 
-	bsr.w	WaitDMA					; Wait for the operation to finish
+	bsr.w	WaitDma					; Wait for the operation to finish
 
 	move.w	vdpReg01,(a6)				; Restore previous DMA enable setting
 	move.w	#$8F02,(a6)				; Set auto-increment to 2
@@ -289,7 +289,7 @@ CopyVRAMRegion:
 ;	d2.w - Number of words to copy
 ; ----------------------------------------------------------------------
 
-DMA68kMemToVRAM:
+Dma68kMemToVram:
 	ori.l	#$40000080,d0				; VRAM DMA
 
 ; ----------------------------------------------------------------------
@@ -301,7 +301,7 @@ DMA68kMemToVRAM:
 ;	d2.w - Number of words to copy
 ; ----------------------------------------------------------------------
 
-DMA68kMemToVDP:
+Dma68kMemToVdp:
 	lea	VDP_CTRL,a6				; VDP control port
 
 	move.w	vdpReg01,d3				; Enable DMA
@@ -335,14 +335,14 @@ DMA68kMemToVDP:
 ; Update CRAM
 ; ----------------------------------------------------------------------
 
-UpdateCRAM:
+UpdateCram:
 	bclr	#0,cramUpdate				; Should we update CRAM?
 	beq.s	.End					; If not, branch
 	
 	move.l	#$C0000080,d0				; Copy palette to CRAM
 	move.l	#palette&$FFFFFF,d1
 	moveq	#$80/2,d2
-	bra.w	DMA68kMemToVDP
+	bra.w	Dma68kMemToVdp
 	
 .End:
 	rts
@@ -351,14 +351,14 @@ UpdateCRAM:
 ; Update sprite data in VRAM
 ; ----------------------------------------------------------------------
 
-UpdateSpriteVRAM:
+UpdateSpriteVram:
 	btst	#0,vblankFlags				; Should we update sprite data?
 	beq.s	.End					; If not, branch
 	
 	move.l	#$78000082,d0				; Copy sprite data to VRAM
 	move.l	#sprites&$FFFFFF,d1
 	move.w	#$280/2,d2
-	bra.w	DMA68kMemToVDP
+	bra.w	Dma68kMemToVdp
 	
 .End:
 	rts
@@ -372,14 +372,14 @@ UpdateSpriteVRAM:
 ;	d2.w - Number of words to copy
 ; ----------------------------------------------------------------------
 
-DMAWordRAMToVRAM:
+DmaWordRamToVram:
 	move.l	a0,-(sp)				; Save a0
 	movea.l	d1,a0					; Save source address for later
 	
 	move.w	#$8F02,VDP_CTRL				; Set auto-increment to 2
 	
 	addq.l	#2,d1					; Perform DMA operation
-	bsr.w	DMA68kMemToVRAM
+	bsr.w	Dma68kMemToVram
 	
 	andi.w	#~$80,d0				; Manually copy first longword to VRAM
 	move.l	d0,(a6)
@@ -396,6 +396,7 @@ DMAWordRAMToVRAM:
 ;	d0.l - VDP command
 ;	d1.w - Tilemap width (minus 1)
 ;	d2.w - Tilemap height (minus 1)
+;	a1.l - Pointer to tilemap data
 ; ----------------------------------------------------------------------
 
 DrawTilemap:
@@ -422,6 +423,7 @@ DrawTilemap:
 ;	d1.w - Tilemap width (minus 1)
 ;	d2.w - Tilemap height (minus 1)
 ;	d3.w - Base tile properties
+;	a1.l - Pointer to tilemap data
 ; ----------------------------------------------------------------------
 
 DrawByteTilemap:
@@ -508,7 +510,7 @@ DrawPartialTilemap:
 ;	d3.w - Fill value
 ; ----------------------------------------------------------------------
 
-FillVDPPlaneRegion:
+FillVdpPlaneRegion:
 	lea	VDP_DATA,a5				; VDP data port
 	
 .NewRow:
@@ -534,7 +536,7 @@ FillVDPPlaneRegion:
 ;	d3.w - Starting tile ID
 ; ----------------------------------------------------------------------
 
-DrawMCDGraphicsTilemap:
+DrawMcdGraphicsTilemap:
 	lea	VDP_DATA,a5				; VDP data port
 	move.w	d2,d6					; Get increment value
 	addq.w	#1,d6
@@ -775,23 +777,23 @@ LoadFontDefault:
 ; ----------------------------------------------------------------------
 
 LoadFont:
-	lea	Art1BPP_Font,a1				; Font data
-	move.w	#(Art1BPP_FontEnd-Art1BPP_Font)/8,d2	; Number of tiles
-	bra.w	Decode1BPPGraphics			; Decode graphics data
+	lea	Art1bpp_Font,a1				; Font data
+	move.w	#(Art1bpp_FontEnd-Art1bpp_Font)/8,d2	; Number of tiles
+	bra.w	Decode1bppGraphics			; Decode graphics data
 
 ; ----------------------------------------------------------------------
 ; Flush Word RAM DMA queue
 ; ----------------------------------------------------------------------
 
-FlushDMAQueue:
+FlushDmaQueue:
 	move.w	(a1)+,d2				; Get DMA length
 	beq.s	.End					; If we are at the end, branch
 	
 	move.l	(a1)+,d0				; Do DMA operation
 	move.l	(a1)+,d1
-	bsr.w	DMAWordRAMToVRAM
+	bsr.w	DmaWordRamToVram
 	
-	bra.s	FlushDMAQueue				; Process next entry
+	bra.s	FlushDmaQueue				; Process next entry
 	
 .End:
 	rts
@@ -803,7 +805,7 @@ FlushDMAQueue:
 ; treated as regular sized DMA queue entries
 ; ----------------------------------------------------------------------
 
-FlushShortDMAQueue:
+FlushShortDmaQueue:
 	move.l	a1,d3					; Get base address
 	move.w	(a1)+,d2				; Get DMA length
 	beq.s	.End					; If we are at the end, branch
@@ -812,9 +814,9 @@ FlushShortDMAQueue:
 	moveq	#0,d1					; Get source address
 	move.w	(a1)+,d1
 	add.l	d3,d1
-	bsr.w	DMAWordRAMToVRAM
+	bsr.w	DmaWordRamToVram
 	
-	bra.s	FlushDMAQueue				; Process next entry (should be FlushShortDMAQueue)
+	bra.s	FlushDmaQueue				; Process next entry (should be FlushShortDMAQueue)
 
 .End:
 	rts
@@ -823,7 +825,7 @@ FlushShortDMAQueue:
 ; Font
 ; ----------------------------------------------------------------------
 
-Art1BPP_Font:
+Art1bpp_Font:
 	dc.b	$00, $00, $00, $00, $00, $00, $00, $00, $10, $10, $10, $10
 	dc.b	$00, $10, $00, $00, $28, $28, $00, $00, $00, $00, $00, $00
 	dc.b	$14, $7E, $28, $28, $FC, $50, $00, $00, $10, $3C, $50, $38
@@ -888,6 +890,6 @@ Art1BPP_Font:
 	dc.b	$10, $08, $00, $00, $10, $10, $10, $10, $10, $10, $00, $00
 	dc.b	$20, $10, $18, $10, $10, $20, $00, $00, $00, $00, $24, $54
 	dc.b	$48, $00, $00, $00, $7C, $82, $BA, $A2, $BA, $82, $7C, $00
-Art1BPP_FontEnd:
+Art1bpp_FontEnd:
 
 ; ----------------------------------------------------------------------

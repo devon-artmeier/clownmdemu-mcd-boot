@@ -35,8 +35,8 @@
 ; ----------------------------------------------------------------------
 
 SplashScreen:
-	bsr.w	SetDefaultVDPRegs			; Set VDP registers
-	bsr.w	ClearVDPMemory				; Clear VDP memory
+	bsr.w	SetDefaultVdpRegs			; Set VDP registers
+	bsr.w	ClearVdpMemory				; Clear VDP memory
 	bsr.w	ClearSprites				; Clear sprites
 	bsr.w	LoadFontDefault				; Load font
 	
@@ -177,17 +177,17 @@ CheckRegion:
 ; ----------------------------------------------------------------------
 
 .WarningStrings:
-	dc.l	.NTSCOnPAL				; Japan
-	dc.l	.NTSCOnPAL				; USA
-	dc.l	.PALOnNTSC				; Europe
+	dc.l	.NtscOnPal				; Japan
+	dc.l	.NtscOnPal				; USA
+	dc.l	.PalOnNtsc				; Europe
 
-.NTSCOnPAL:
+.NtscOnPal:
 	dc.b	"            WARNING", 0, 0
 	dc.b	" THIS IS AN NTSC DISC RUNNING", 0
 	dc.b	"ON A PAL SYSTEM! THINGS MAY NOT", 0
 	dc.b	"       WORK AS EXPECTED.", -1
 
-.PALOnNTSC:
+.PalOnNtsc:
 	dc.b	"            WARNING", 0, 0
 	dc.b	"  THIS IS A PAL DISC RUNNING", 0
 	dc.b	" ON AN NTSC SYSTEM. THINGS MAY", 0
@@ -254,8 +254,8 @@ CheckSecurityBlock:
 VBlank_Splash:
 	movem.l	d0-a6,-(sp)				; Save registers
 
-	bsr.w	TriggerSubIRQ2				; Trigger Sub CPU IRQ2
-	bsr.w	UpdateCRAM				; Update CRAM
+	bsr.w	TriggerSubCpuIrq2			; Trigger Sub CPU IRQ2
+	bsr.w	UpdateCram				; Update CRAM
 
 	clr.b	vblankFlags				; Clear V-BLANK handler flags
 	movem.l	(sp)+,d0-a6				; Restore registers

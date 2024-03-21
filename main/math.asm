@@ -62,7 +62,7 @@ UpdateRandomSeed:
 ;	d1.b - Converted number
 ; ----------------------------------------------------------------------
 
-ByteToBCD:
+ByteToBcd:
 	move.w	d0,-(sp)				; Save d0
 	
 	andi.l	#$FF,d1					; Split digits
@@ -84,7 +84,7 @@ ByteToBCD:
 ;	d1.w - Converted number
 ; ----------------------------------------------------------------------
 
-WordToBCD:
+WordToBcd:
 	move.w	d0,-(sp)				; Save d0
 	
 	andi.l	#$FFFF,d1				; Get 1st digit
