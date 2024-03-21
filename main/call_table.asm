@@ -30,7 +30,7 @@ SetupCallTable:
 	move.l	#SoftReset,(a0)+
 	
 	move.w	d0,(a0)+				; Set V-BLANK interrupt
-	move.l	#VBlankInt,(a0)+
+	move.l	#VBlankInterrupt,(a0)+
 
 	lea	NullException(pc),a1			; Set interrupts and TRAPs
 	moveq	#(16+2)-1,d1
