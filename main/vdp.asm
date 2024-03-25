@@ -777,7 +777,7 @@ LoadFontDefault:
 ; ----------------------------------------------------------------------
 
 LoadFont:
-	lea	Art1bpp_Font,a1				; Font data
+	lea	Art1bpp_Font(pc),a1			; Font data
 	move.w	#(Art1bpp_FontEnd-Art1bpp_Font)/8,d2	; Number of tiles
 	bra.w	Decode1bppGraphics			; Decode graphics data
 
