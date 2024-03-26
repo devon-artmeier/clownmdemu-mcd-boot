@@ -37,7 +37,7 @@
 SplashScreen:
 	bsr.w	SetDefaultVdpRegs			; Set VDP registers
 	bsr.w	ClearVdpMemory				; Clear VDP memory
-	bsr.w	ClearSprites				; Clear sprites
+	bsr.w	ClearVdpSprites				; Clear sprites
 	bsr.w	LoadFontDefault				; Load font
 	
 	move.l	VBLANK_INT+2,-(sp)			; Save V-BLANK handler
@@ -56,7 +56,7 @@ SplashScreen:
 	bsr.w	CheckRegion
 
 	lea	SplashPalette(pc),a1			; Load palette
-	bsr.w	LoadPalette
+	bsr.w	LoadVdpPaletteData
 
 	move.l	#$60000000,VDP_CTRL			; Load logo graphics
 	lea	SplashLogoGraphics(pc),a1
@@ -77,7 +77,7 @@ SplashScreen:
 	move.l	#$4A9C0003,d0
 	bsr.w	DrawText
 
-	bsr.w	EnableDisplay				; Enable display
+	bsr.w	EnableVdpDisplay				; Enable display
 
 	moveq	#60-1,d1				; Wait for a second
 	bsr.w	Delay
@@ -103,9 +103,9 @@ InvalidSecurityBlock:
 	bsr.w	DrawText
 
 	move.l	#$EE00000,palette			; Set palette
-	bset	#0,cramUpdate
+	bset	#0,paletteUpdate
 	
-	bsr.w	EnableDisplay				; Enable display
+	bsr.w	EnableVdpDisplay			; Enable display
 
 .Hang:
 	bsr.w	DefaultVSync				; VSync
@@ -158,9 +158,9 @@ CheckRegion:
 	bsr.w	DrawText
 
 	move.l	#$EE00000,palette			; Set palette
-	bset	#0,cramUpdate
+	bset	#0,paletteUpdate
 	
-	bsr.w	EnableDisplay				; Enable display
+	bsr.w	EnableVdpDisplay			; Enable display
 
 	move.w	#(60*5)-1,d2				; Wait for several seconds
 
@@ -169,10 +169,10 @@ CheckRegion:
 	dbf	d2,.Wait				; Loop until finished
 
 	clr.w	palette					; Black out screen
-	bsr.w	BlackOutDisplay
+	bsr.w	BlackOutVdpDisplay
 	
 	move	#$2700,sr				; Disable interrupts
-	bra.w	ClearScreen				; Clear screen
+	bra.w	ClearVdpScreen				; Clear screen
 
 ; ----------------------------------------------------------------------
 
@@ -254,8 +254,8 @@ CheckSecurityBlock:
 VBlank_Splash:
 	movem.l	d0-a6,-(sp)				; Save registers
 
-	bsr.w	TriggerSubCpuIrq2			; Trigger Sub CPU IRQ2
-	bsr.w	UpdateCram				; Update CRAM
+	bsr.w	TriggerMcdSubCpuIrq2			; Trigger Sub CPU IRQ2
+	bsr.w	UpdateVdpPalette			; Update palette
 
 	clr.b	vblankFlags				; Clear V-BLANK handler flags
 	movem.l	(sp)+,d0-a6				; Restore registers

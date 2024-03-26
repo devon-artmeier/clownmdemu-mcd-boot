@@ -22,7 +22,7 @@
 ; Clear communication registers
 ; ----------------------------------------------------------------------
 
-ClearCommRegisters:
+ClearMcdCommRegisters:
 	moveq	#0,d0
 	move.b	d0,GA_MAIN_FLAG
 	move.l	d0,GA_COMM_CMD_0

@@ -24,12 +24,12 @@
 
 VBlankInterrupt:
 	movem.l	d0-a6,-(sp)				; Save registers
-	bsr.w	TriggerSubCpuIrq2			; Trigger Sub CPU IRQ2
+	bsr.w	TriggerMcdSubCpuIrq2			; Trigger Sub CPU IRQ2
 	
 	tst.b	vblankUpdatesOff			; Are updates disabled?
 	bne.s	.NoUpdates
 	
-	bsr.w	UpdateCram				; Update CRAM
+	bsr.w	UpdateVdpPalette			; Update palette
 	
 	btst	#1,vblankFlags				; Is the user handler enabled?
 	beq.s	.NoUpdates				; If not, branch
@@ -135,7 +135,7 @@ DisableHBlank:
 ; Trigger Sub CPU's IRQ2
 ; ----------------------------------------------------------------------
 
-TriggerSubCpuIrq2:
+TriggerMcdSubCpuIrq2:
 	bset	#0,GA_IRQ2				; Trigger Sub CPU's IRQ2
 	rts
 

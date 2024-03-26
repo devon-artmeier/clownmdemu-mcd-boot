@@ -57,12 +57,12 @@ SoftReset:
 	move.w	#$2700,sr				; Disable interrupts
 	clr.l	vblankFlags				; Clear V-BLANK handler flags
 
-	bsr.w	WaitDma					; Wait for any leftover DMA to finish
+	bsr.w	WaitVdpDma				; Wait for any leftover DMA to finish
 	bsr.w	SetDefaultVdpRegs			; Set the default VDP register values
 	bsr.w	ClearVdpMemory				; Clear VDP memory
-	bsr.w	ClearPalette				; Clear palette
-	bsr.w	ClearSprites				; Clear sprites
-	bsr.w	ClearCommRegisters			; Clear communication registers
+	bsr.w	ClearVdpPalette				; Clear palette
+	bsr.w	ClearVdpSprites				; Clear sprites
+	bsr.w	ClearMcdCommRegisters			; Clear communication registers
 	bsr.w	SetupCallTable				; Set up call table in RAM
 	
 	moveq	#$FFFFFF9F,d0				; PSG1 silence value

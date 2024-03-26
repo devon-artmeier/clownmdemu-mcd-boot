@@ -78,10 +78,10 @@ ctrlTimerP2		equ WORK_RAM+$FE25		; Player 2 controller directional pad timer
 vblankFlags		equ WORK_RAM+$FE26		; V-BLANK handler flags
 vblankUserCounter	equ WORK_RAM+$FE27		; User V-BLANK counter
 vblankUpdatesOff	equ WORK_RAM+$FE28		; V-BLANK handler update disable flag
-cramUpdate		equ WORK_RAM+$FE29		; CRAM update flag
+paletteUpdate		equ WORK_RAM+$FE29		; Palette update flag
 rngSeed			equ WORK_RAM+$FE2A		; Random number generator seed
 fontTile		equ WORK_RAM+$FE2C		; Font tile properties
-planeStride		equ WORK_RAM+$FE2E		; VDP plane stride
+vdpPlaneStride		equ WORK_RAM+$FE2E		; VDP plane stride
 objSpriteSlot		equ WORK_RAM+$FE30		; Current object sprite slot
 objIndexTable		equ WORK_RAM+$FE34		; Object index table
 objSpriteLink		equ WORK_RAM+$FE38		; Current object sprite link
