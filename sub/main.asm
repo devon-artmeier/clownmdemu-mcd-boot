@@ -33,9 +33,9 @@ HardReset:
 	bclr	#0,GA_RESET				; Reset periphery
 	move.b	d0,GA_IRQ_MASK				; Disable interrupts
 
-.Set2MMode:
-	bclr	#2,GA_MEMORY_MODE			; Set Word RAM to 2M mode
-	bne.s	.Set2MMode
+.Set1MMode:
+	bset	#2,GA_MEMORY_MODE			; Set Word RAM to 1M mode
+	beq.s	.Set1MMode
 
 .GiveWordRAM:
 	bset	#0,GA_MEMORY_MODE			; Give Word RAM to Main CPU
