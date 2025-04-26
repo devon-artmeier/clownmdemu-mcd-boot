@@ -56,7 +56,7 @@
 
 	dcb.b	$16000-*, $FF
 SubCpuBios:
-	incbin	"build/subbios.kos"
+	incbin	"out/subbios.kos"
 
 ; ----------------------------------------------------------------------
 ; Padding

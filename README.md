@@ -3,12 +3,12 @@ A minimal Mega CD boot ROM, specifically for use with
 [ClownMDEmu](https://github.com/Clownacy/clownmdemu)'s Mega CD emulation.
 
 ## Building
-1. Create a folder called "build".
+1. Create a folder called "out".
 2. Assemble the "core.asm" file in the "sub" folder to build the Sub CPU BIOS
-   file into the "build" folder.
+   file into the "out" folder.
    [clownassembler](https://github.com/Clownacy/clownassembler) can be used for
    this.
-3. Compress the assembled Sub CPU BIOS file in Kosinski in the "build" folder,
+3. Compress the assembled Sub CPU BIOS file in Kosinski in the "out" folder,
    using Clownacy's
    [accurate Kosinski](https://github.com/Clownacy/accurate-kosinski/releases)
    compressor (other compressors may not compress it in a way where it can be
