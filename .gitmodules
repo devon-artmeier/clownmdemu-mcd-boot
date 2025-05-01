@@ -1,0 +1,12 @@
+[submodule "bin/accurate-kosinski"]
+	path = bin/accurate-kosinski
+	url = https://github.com/Clownacy/accurate-kosinski.git
+[submodule "bin/clownassembler"]
+	path = bin/clownassembler
+	url = https://github.com/Clownacy/clownassembler.git
+[submodule "bin/clownlzss"]
+	path = bin/clownlzss
+	url = https://github.com/Clownacy/clownlzss.git
+[submodule "bin/clownnemesis"]
+	path = bin/clownnemesis
+	url = https://github.com/Clownacy/clownnemesis.git

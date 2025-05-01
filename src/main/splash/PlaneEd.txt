@@ -1,0 +1,10 @@
+Palette File: palette.bin
+Mapping File: map.eni
+Art File: tiles.nem
+Mapping Compression: Enigma
+Art Compression: Nemesis
+x-Size: 16
+y-Size: 12
+Palette Offset: 0x60
+Palette Length: 0x20
+Tile Offset: 0x00
