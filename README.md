@@ -13,7 +13,7 @@ A minimal Mega CD boot ROM, specifically for use with
    [accurate Kosinski](https://github.com/Clownacy/accurate-kosinski/releases)
    compressor (other compressors may not compress it in a way where it can be
    detected in Mode 1). Make sure that the compressed file is named
-   'subbios.kos'.
+   'sub_bios.kos'.
 4. Assemble the "core.asm" file in the "main" folder to build the full boot
    ROM.
 

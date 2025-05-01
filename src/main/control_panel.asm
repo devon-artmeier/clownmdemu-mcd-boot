@@ -1,9 +1,5 @@
-; ----------------------------------------------------------------------
-; Mega CD minimal boot ROM for clownmdemu
-; ----------------------------------------------------------------------
-; Main CPU control panel functions
-; ----------------------------------------------------------------------
-; Copyright (c) 2024 Devon Artmeier
+; ------------------------------------------------------------------------------
+; Copyright (c) 2025 Devon Artmeier
 ;
 ; Permission to use, copy, modify, and/or distribute this software
 ; for any purpose with or without fee is hereby granted.
@@ -16,18 +12,18 @@
 ; PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER 
 ; TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 ; PERFORMANCE OF THIS SOFTWARE.
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Go to control panel
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 ResetToControlPanel:
-	ori	#$700,sr				; Disable interupts
-	movea.l	BOOT_ROM,sp				; Reset stack pointer
+	ori	#$700,sr					; Disable interupts
+	movea.l	BIOS,sp						; Reset stack pointer
 
 GoToControlPanel:
-	ori	#$700,sr				; Disable interupts
-	bra.w	SoftReset				; (No control panel implemented)
+	ori	#$700,sr					; Disable interupts
+	bra.w	SoftReset					; (No control panel implemented)
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------

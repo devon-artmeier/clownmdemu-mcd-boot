@@ -1,9 +1,5 @@
-; ----------------------------------------------------------------------
-; Mega CD minimal boot ROM for clownmdemu
-; ----------------------------------------------------------------------
-; Main CPU splash screen
-; ----------------------------------------------------------------------
-; Copyright (c) 2024 Devon Artmeier
+; ------------------------------------------------------------------------------
+; Copyright (c) 2025 Devon Artmeier
 ;
 ; Permission to use, copy, modify, and/or distribute this software
 ; for any purpose with or without fee is hereby granted.
@@ -16,11 +12,11 @@
 ; PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER 
 ; TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 ; PERFORMANCE OF THIS SOFTWARE.
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Splash screen
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Sega's BIOS loads a font and logo. Since it does not clear VRAM before
 ; booting anything, games and homebrew are able to use them. Here, we
 ; provide our own custom font and logo.
@@ -32,86 +28,86 @@
 ; CrazySonic ROM-hack:
 ; https://github.com/DevsArchive/bad-apple-sega-cd-30-fps
 ; https://forums.sonicretro.org/index.php?posts/1056900/
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 SplashScreen:
-	bsr.w	SetDefaultVdpRegs			; Set VDP registers
-	bsr.w	ClearVdpMemory				; Clear VDP memory
-	bsr.w	ClearVdpSprites				; Clear sprites
-	bsr.w	LoadFontDefault				; Load font
+	bsr.w	SetDefaultVdpRegs				; Set VDP registers
+	bsr.w	ClearVdp					; Clear VDP memory
+	bsr.w	ClearSprites					; Clear sprites
+	bsr.w	LoadFontDefault					; Load font
 	
-	move.l	VBLANK_INT+2,-(sp)			; Save V-BLANK handler
-	move.w	VBLANK_INT,-(sp)
+	move.l	_LEVEL6+2,-(sp)					; Save V-BLANK handler
+	move.w	_LEVEL6,-(sp)
 	
-	lea	WORK_RAM,a0				; Get security block type
+	lea	WORK_RAM,a0					; Get security block type
 	bsr.w	CheckSecurityBlock
 	move.w	d0,-(sp)
-	bmi.w	InvalidSecurityBlock			; If it's invalid, branch
+	bmi.w	InvalidSecurityBlock				; If it's invalid, branch
 	
-	move	#$2700,sr				; Set V-BLANK handler
-	move.w	#$4EF9,VBLANK_INT
-	move.l	#VBlank_Splash,VBLANK_INT+2
+	move	#$2700,sr					; Set V-BLANK handler
+	move.w	#$4EF9,_LEVEL6
+	move.l	#SplashVBlankIrq,_LEVEL6+2
 	
-	move.w	(sp),d1					; Check region
+	move.w	(sp),d1						; Check region
 	bsr.w	CheckRegion
 
-	lea	SplashPalette(pc),a1			; Load palette
-	bsr.w	LoadVdpPaletteData
+	lea	SplashPalette(pc),a1				; Load palette
+	bsr.w	LoadPalette
 
-	move.l	#$60000000,VDP_CTRL			; Load logo graphics
-	lea	SplashLogoGraphics(pc),a1
-	bsr.w	NemDec
+	move.l	#$60000000,VDP_CTRL				; Load logo art
+	lea	SplashLogoArt(pc),a1
+	bsr.w	NemDecToVram
 
-	move.w	#$6100,d0				; Decompress logo tilemap
+	move.w	#$6100,d0					; Decompress logo tilemap
 	lea	SplashLogoTilemap(pc),a1
-	lea	decompBuffer,a2
+	lea	decomp_buffer,a2
 	bsr.w	EniDec
 
-	lea	decompBuffer,a1				; Load logo tilemap
+	lea	decomp_buffer,a1				; Load logo tilemap
 	move.l	#$44180003,d0
 	moveq	#16-1,d1
 	moveq	#12-1,d2
 	bsr.w	DrawTilemap
 
-	lea	.Text(pc),a1				; Load text
+	lea	.Text(pc),a1					; Load text
 	move.l	#$4A9C0003,d0
 	bsr.w	DrawText
 
-	bsr.w	EnableVdpDisplay				; Enable display
+	bsr.w	EnableDisplay					; Enable display
 
-	moveq	#60-1,d1				; Wait for a second
+	moveq	#60-1,d1					; Wait for a second
 	bsr.w	Delay
 	
-	addq.w	#2,sp					; Deallocate security block type
-	move.w	(sp)+,VBLANK_INT			; Restore V-BLANK handler
-	move.l	(sp)+,VBLANK_INT+2
+	addq.w	#2,sp						; Deallocate security block type
+	move.w	(sp)+,_LEVEL6					; Restore V-BLANK handler
+	move.l	(sp)+,_LEVEL6+2
 	rts
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .Text:
 	dc.b	"NOW  LOADING", -1
 	even
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Invalid security block error message
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 InvalidSecurityBlock:
-	lea	.ErrorString(pc),a1			; Draw error string
+	lea	.ErrorString(pc),a1				; Draw error string
 	move.l	#$458E0003,d0
 	bsr.w	DrawText
 
-	move.l	#$EE00000,palette			; Set palette
-	bset	#0,paletteUpdate
+	move.l	#$EE00000,palette				; Set palette
+	bset	#0,update_cram
 	
-	bsr.w	EnableVdpDisplay			; Enable display
+	bsr.w	EnableDisplay					; Enable display
 
 .Hang:
-	bsr.w	DefaultVSync				; VSync
-	bra.s	.Hang					; Loop indefinitely
+	bsr.w	DefaultVSync					; VSync
+	bra.s	.Hang						; Loop indefinitely
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .ErrorString:
 	dc.b	"          ERROR", 0, 0
@@ -119,67 +115,67 @@ InvalidSecurityBlock:
 	dc.b	"   VALID MEGA CD DISC.", -1
 	even
 	
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Check the region before displaying the animation
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; PARAMETERS:
 ;	d1.b - Security block type
 ;	       0 = Japan
 ;	       1 = USA
 ;	       2 = Europe
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 CheckRegion:
-	bsr.w	StopZ80					; Get the console's PAL settings
+	bsr.w	StopZ80						; Get the console's PAL settings
 	move.b	VERSION,d0
 	andi.b	#$40,d0
 	bsr.w	StartZ80
 
-	ext.w	d1					; Does it match the expected setting?
+	ext.w	d1						; Does it match the expected setting?
 	cmp.b	.Expected(pc,d1.w),d0
-	bne.s	.NoMatch				; If not, branch
+	bne.s	.NoMatch					; If not, branch
 	rts
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .Expected:
-	dc.b	$00					; Japan
-	dc.b	$00					; USA
-	dc.b	$40					; Europe
+	dc.b	$00						; Japan
+	dc.b	$00						; USA
+	dc.b	$40						; Europe
 	even
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .NoMatch:
-	add.w	d1,d1					; Draw warning text
+	add.w	d1,d1						; Draw warning text
 	add.w	d1,d1
 	movea.l	.WarningStrings(pc,d1.w),a1
 	move.l	#$45880003,d0
 	bsr.w	DrawText
 
-	move.l	#$EE00000,palette			; Set palette
-	bset	#0,paletteUpdate
+	move.l	#$EE00000,palette				; Set palette
+	bset	#0,update_cram
 	
-	bsr.w	EnableVdpDisplay			; Enable display
+	bsr.w	EnableDisplay					; Enable display
 
-	move.w	#(60*5)-1,d2				; Wait for several seconds
+	move.w	#(60*5)-1,d2					; Wait for several seconds
 
 .Wait:
-	bsr.w	DefaultVSync				; VSync
-	dbf	d2,.Wait				; Loop until finished
+	bsr.w	DefaultVSync					; VSync
+	dbf	d2,.Wait					; Loop until finished
 
-	clr.w	palette					; Black out screen
-	bsr.w	BlackOutVdpDisplay
+	clr.w	palette						; Black out screen
+	bsr.w	BlackOutDisplay
 	
-	move	#$2700,sr				; Disable interrupts
-	bra.w	ClearVdpScreen				; Clear screen
+	move	#$2700,sr					; Disable interrupts
+	bra.w	ClearScreen					; Clear screen
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .WarningStrings:
-	dc.l	.NtscOnPal				; Japan
-	dc.l	.NtscOnPal				; USA
-	dc.l	.PalOnNtsc				; Europe
+	dc.l	.NtscOnPal					; Japan
+	dc.l	.NtscOnPal					; USA
+	dc.l	.PalOnNtsc					; Europe
 
 .NtscOnPal:
 	dc.b	"            WARNING", 0, 0
@@ -194,12 +190,12 @@ CheckRegion:
 	dc.b	"     NOT WORK AS EXPECTED.", -1
 	even
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Check if a valid security block is present
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; PARAMETERS
 ;	a0.l - Pointer to security block
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; RETURNS:
 ;	d0.b  - Security block type
 ;	        -1 = Invalid
@@ -207,63 +203,63 @@ CheckRegion:
 ;	         1 = USA
 ;	         2 = Europe
 ;	pl/mi - Valid/Invalid
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 CheckSecurityBlock:
-	moveq	#0,d0					; Check Japanese security block
+	moveq	#0,d0						; Check Japanese security block
 	move.w	#$156/2-1,d1
 	move.w	#$B1E2,d2
 	bsr.s	.Check
-	beq.s	.End					; Branch if there was a match
+	beq.s	.End						; Branch if there was a match
 	
-	moveq	#1,d0					; Check USA security block
+	moveq	#1,d0						; Check USA security block
 	move.w	#$584/2-1,d1
 	move.w	#$35F9,d2
 	bsr.s	.Check
-	beq.s	.End					; Branch if there was a match
+	beq.s	.End						; Branch if there was a match
 	
-	moveq	#2,d0					; Check European security block
+	moveq	#2,d0						; Check European security block
 	move.w	#$56E/2-1,d1
 	move.w	#$4351,d2
 	bsr.s	.Check
-	beq.s	.End					; Branch if there was a match
+	beq.s	.End						; Branch if there was a match
 
-	moveq	#-1,d0					; No match
+	moveq	#-1,d0						; No match
 
 .End:
-	tst.b	d0					; Check security block type
+	tst.b	d0						; Check security block type
 	rts
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 .Check:
-	movea.l	a0,a1					; Get security block to check
+	movea.l	a0,a1						; Get security block to check
 	moveq	#0,d3
 
 .CheckLoop:
-	add.w	(a1)+,d3				; Calculate checksum
+	add.w	(a1)+,d3					; Calculate checksum
 	dbf	d1,.CheckLoop
 
-	cmp.w	d2,d3					; Check calculated checksum value
+	cmp.w	d2,d3						; Check calculated checksum value
 	rts
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; V-BLANK handler
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
-VBlank_Splash:
-	movem.l	d0-a6,-(sp)				; Save registers
+SplashVBlankIrq:
+	movem.l	d0-a6,-(sp)					; Save registers
 
-	bsr.w	TriggerMcdSubCpuIrq2			; Trigger Sub CPU IRQ2
-	bsr.w	UpdateVdpPalette			; Update palette
+	bsr.w	TriggerMcdSubIrq2				; Trigger Sub CPU IRQ2
+	bsr.w	UpdateCram					; Update CRAM
 
-	clr.b	vblankFlags				; Clear V-BLANK handler flags
-	movem.l	(sp)+,d0-a6				; Restore registers
+	clr.b	vblank_flags					; Clear V-BLANK handler flags
+	movem.l	(sp)+,d0-a6					; Restore registers
 	rte
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Assets
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 
 SplashPalette:
 	dc.b	0, (.DataEnd-.Data)/2-1
@@ -278,7 +274,7 @@ SplashPalette:
 	dc.w	$66C, $44A, $448, $22A, $000, $000, $000, $000
 .DataEnd:
 
-SplashLogoGraphics:
+SplashLogoArt:
 	dc.b	$80, $4D, $80, $06, $38, $15, $1A, $25, $19, $36, $36, $45
 	dc.b	$16, $54, $09, $64, $04, $72, $00, $81, $04, $05, $82, $04
 	dc.b	$07, $83, $04, $0A, $16, $3A, $89, $07, $7D, $8C, $04, $06
@@ -350,4 +346,4 @@ SplashLogoTilemap:
 	dc.b	$FE, $00
 	even
 
-; ----------------------------------------------------------------------
+; ------------------------------------------------------------------------------
