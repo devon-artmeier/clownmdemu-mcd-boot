@@ -26,15 +26,15 @@ out/sub_bios.kos: out/sub_bios.bin out/accurate-kosinski/kosinski-compress
 	@mkdir -p out
 	out/accurate-kosinski/kosinski-compress $< $@
 
-src/main/splash/tiles.bin src/main/splash/map.bin:
+src/splash/tiles.bin src/splash/map.bin:
 	$(MAKE) -C src/main/splash
 
-src/main/splash/tiles.nem: src/main/splash/tiles.bin out/clownnemesis/clownnemesis-tool
+src/splash/tiles.nem: src/splash/tiles.bin out/clownnemesis/clownnemesis-tool
 	out/clownnemesis/clownnemesis-tool -c $< $@
 
-src/main/splash/map.eni: src/main/splash/map.bin bin/clownlzss/clownlzss
+src/splash/map.eni: src/splash/map.bin bin/clownlzss/clownlzss
 	bin/clownlzss/clownlzss -e $< $@
 
-out/bios.bin: src/main/core.asm out/sub_bios.kos bin/clownassembler/clownassembler src/main/splash/tiles.nem src/main/splash/map.eni
+out/bios.bin: src/main/core.asm out/sub_bios.kos bin/clownassembler/clownassembler src/splash/tiles.nem src/splash/map.eni
 	@mkdir -p out
 	bin/clownassembler/clownassembler -i $< -o $@
