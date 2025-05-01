@@ -27,7 +27,7 @@ out/sub_bios.kos: out/sub_bios.bin out/accurate-kosinski/kosinski-compress
 	out/accurate-kosinski/kosinski-compress $< $@
 
 src/splash/tiles.bin src/splash/map.bin:
-	$(MAKE) -C src/main/splash
+	$(MAKE) -C src/splash
 
 src/splash/tiles.nem: src/splash/tiles.bin out/clownnemesis/clownnemesis-tool
 	out/clownnemesis/clownnemesis-tool -c $< $@
