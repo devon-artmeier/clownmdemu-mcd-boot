@@ -264,15 +264,15 @@ SplashVBlankIrq:
 SplashPalette:
 	dc.b	0, (.DataEnd-.Data)/2-1
 .Data:
-	incbin	"main/splash/palette.bin"
+	incbin	"src/main/splash/palette.bin"
 .DataEnd:
 
 SplashLogoArt:
-	incbin	"main/splash/tiles.nem"
+	incbin	"src/main/splash/tiles.nem"
 	even
 
 SplashLogoTilemap:
-	incbin	"main/splash/map.eni"
+	incbin	"src/main/splash/map.eni"
 	even
 
 ; ------------------------------------------------------------------------------
