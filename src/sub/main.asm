@@ -29,9 +29,9 @@ HardReset:
 	bclr	#0,MCD_RESET					; Reset periphery
 	move.b	d0,MCD_IRQ_MASK					; Disable interrupts
 
-.SetMode2M:
-	bclr	#2,MCD_MEM_MODE					; Set Word RAM to 2M mode
-	bne.s	.SetMode2M
+.SetMode1M:
+	bset	#2,MCD_MEM_MODE					; Set Word RAM to 1M mode
+	beq.s	.SetMode1M
 
 .GiveWordRam:
 	bset	#0,MCD_MEM_MODE					; Give Word RAM to Main CPU

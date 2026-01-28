@@ -70,7 +70,7 @@ SplashScreen:
 	bsr.w	DrawTilemap
 
 	lea	.Text(pc),a1					; Load text
-	move.l	#$4A9C0003,d0
+	move.l	#$4A8A0003,d0
 	bsr.w	DrawText
 
 	bsr.w	EnableDisplay					; Enable display
@@ -86,7 +86,9 @@ SplashScreen:
 ; ------------------------------------------------------------------------------
 
 .Text:
-	dc.b	"NOW  LOADING", -1
+	dc.b	"         NOW  LOADING", 0, 0
+	dc.b	"MEGA CD SUPPORT IS EXPERIMENTAL", 0
+	dc.b	"       CRASHES MAY OCCUR", -1
 	even
 
 ; ------------------------------------------------------------------------------
