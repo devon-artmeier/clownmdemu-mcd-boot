@@ -99,7 +99,11 @@ SoftReset:
 	movem.l	.Zero(pc),d0-a6					; Clear registers
 	move.l	a6,usp
 
-	jmp	WORK_RAM					; Go to the initial program
+; ------------------------------------------------------------------------------
+
+.MainLoop:
+	jsr	WORK_RAM					; Go to the initial program
+	bra.s	.MainLoop					; Loop
 
 ; ------------------------------------------------------------------------------
 
